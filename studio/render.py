@@ -1,4 +1,5 @@
 """Turns a time range into a vertical clip: 9:16 layout, bouncy word captions, hook title, cover."""
+import os
 import re
 import shutil
 import subprocess
@@ -279,7 +280,17 @@ def _hook_y(layout, hook_y, facecam=None):
 
 
 _qsv_ok = None
-RENDER_SECONDS = 600      # one clip's video encode; far beyond normal, so a frozen encoder is stopped, not waited on
+RENDER_SECONDS = 600      # least time one clip's encode may take; longer clips and slower computers get more (see _timeout)
+WEAK_CPU = (os.cpu_count() or 4) <= 4     # a laptop-class processor: encode lighter so it finishes in sane time
+# x264 speed: "ultrafast" is ~40% quicker than "veryfast" on a weak CPU for a slightly larger file. PEAKCUT_X264_PRESET overrides.
+X264 = (os.environ.get("PEAKCUT_X264_PRESET", "").strip() or ("ultrafast" if WEAK_CPU else "veryfast"),
+        "24" if WEAK_CPU else "21")
+
+
+def _timeout(seconds):
+    """A clip made on a slow computer, while it is also busy with other videos, can run many times slower than
+    real time. Allow generously by clip length so a slow-but-working encode is not killed; a frozen one still is."""
+    return max(RENDER_SECONDS, seconds * (40 if WEAK_CPU else 15))
 
 
 def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int) -> dict:
@@ -291,7 +302,8 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     if layout == "gameplay" and not (face and len(face) == 4):
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
     hook_y = _hook_y(layout, hook_y, face)
-    ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
+    hook = clip.get("hook", "") if clip.get("big_text", True) else ""   # big text switched off: no title box on the video
+    ass = build_ass(words if clip.get("captions", True) else [], start, end, hook, clip.get("style", "bounce"),
                     clip.get("highlight_words", []), hook_y, cap_y)
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
@@ -323,11 +335,11 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     encoders = []
     if _qsv_ok is not False:
         encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
-    encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
+    encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", X264[1], "-preset", X264[0]]))
     err = None
     for label, enc in encoders:
         p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=RENDER_SECONDS)
+                           encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=_timeout(end - start))
         if p.returncode == 0:
             if label == "qsv":
                 _qsv_ok = True

@@ -16,6 +16,9 @@ creator's live stream and clip the highlights while the stream is still running.
 - **Workspaces per creator.** Channels, clip settings, posting rules and an activity log for each creator you clip.
 - **Posting.** Connect YouTube, Instagram and TikTok in one click, then queue or auto-post finished clips, with
   spacing and daily caps (see [DEPLOY.md](DEPLOY.md#connecting-youtube-instagram-and-tiktok) for the one-time setup).
+- **Many channels.** Connect as many channels as you like, give each its own upload times (say 6 a day from 8:00),
+  sort them into groups, and upload and schedule every ready clip in one click. YouTube publishes each at its time.
+  [CHANNELS.md](CHANNELS.md) shows how to connect a channel.
 - **No sign-in on your own computer.** It opens straight into the dashboard. On a shared server, switch accounts on
   (`PEAKCUT_ACCOUNTS=1`) for email or Google sign-in and an admin dashboard.
 - **Your own AI.** Gemini, OpenAI, Grok, Groq, OpenRouter, Claude, a local model through Ollama, or anything that

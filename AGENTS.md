@@ -44,6 +44,8 @@ are there, and only then offer to delete the old folder. Never delete anything w
 | `tools/export_arabic_model.py` | How the Arabic model was converted for sherpa-onnx (run once, on Google Colab) |
 | `studio/render.py` | Cutting, layouts and captions (ffmpeg and Pillow) |
 | `studio/media.py` | Downloading (yt-dlp), probing, audio |
+| `studio/accounts.py` | Connected channels (YouTube, Instagram, TikTok), their sign-ins and uploads, channel groups and each channel's upload times (`channels.json`, kept apart from the tokens) |
+| `studio/posting.py` | The post queue: which clip goes to which channel when, the one-click plan, and YouTube's own scheduling (`publish_at`) |
 | `studio/auth.py`, `studio/account.py`, `studio/admin.py` | Sign-in, deleting things, the admin dashboard |
 | `studio/db.py` | Database tables (SQLAlchemy core; SQLite or PostgreSQL) |
 | `web/index.html` | The whole signed-in app, one file, no build step |

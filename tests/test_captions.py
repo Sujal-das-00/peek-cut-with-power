@@ -101,6 +101,32 @@ def main(data):
             ass = encode.call_args.args[-1]
             check("the renderer honors captions off even when it receives spoken words",
                   not has_dialogue(ass, "Cap") and has_dialogue(ass, "Hook", "KEEP THE HOOK"))
+
+            # Big text (the hook title at the top) can be left out, on its own or together with the captions.
+            check("the default is to show the big text", job["options"]["big_text"] is True)
+            plain = jobs.create(source, {"captions": False, "big_text": False}, enqueue=False)
+            check("a new video can be made with no captions and no big text",
+                  plain["options"]["captions"] is False and plain["options"]["big_text"] is False)
+            for value in ("false", 0, None):
+                try:
+                    jobs.clean_options({"big_text": value})
+                    refused = False
+                except ValueError as error:
+                    refused = "big text" in str(error).lower()
+                check(f"{value!r} is refused as a big text choice", refused)
+            render.render_clip(Path(data) / "source.mp4", Path(data) / "clips", "direct",
+                               dict(clip, big_text=False), WORDS, 1920, 1080)
+            ass = encode.call_args.args[-1]
+            check("big text off leaves out the title but keeps the captions",
+                  not has_dialogue(ass, "Hook") and has_dialogue(ass, "Cap"))
+            render.render_clip(Path(data) / "source.mp4", Path(data) / "clips", "direct",
+                               dict(clip, big_text=False, captions=False), WORDS, 1920, 1080)
+            ass = encode.call_args.args[-1]
+            check("with both off nothing is written on the video",
+                  not has_dialogue(ass, "Hook") and not has_dialogue(ass, "Cap"))
+            response = server.rerender(job["id"], clip["id"], {"big_text": False})
+            check("the clip editor can turn the big text off",
+                  response["clips"][0]["big_text"] is False and response["clips"][0]["hook"] == "KEEP THE HOOK")
     finally:
         db.engine.dispose()
 

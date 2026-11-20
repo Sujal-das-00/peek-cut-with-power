@@ -281,8 +281,15 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
             "download_ranges": download_range_func(None, [(max(0.0, start), end)])}
     if exact:
         opts["force_keyframes_at_cuts"] = True
-    with _youtube_guard(url), _ydl(opts) as ydl:
-        ydl.download([url])
+    for attempt in range(3):         # a network blip (a bad certificate answer, a timeout) must not fail the clip
+        try:
+            with _youtube_guard(url), _ydl(opts) as ydl:
+                ydl.download([url])
+            break
+        except Exception:  # noqa: BLE001
+            if attempt == 2:
+                raise
+            time.sleep(3 * (attempt + 1))
     return _biggest(out_dir, stem)
 
 

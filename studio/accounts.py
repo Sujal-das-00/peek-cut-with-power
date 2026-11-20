@@ -24,7 +24,8 @@ _states: dict = {}   # one-time values for the connect redirects: state -> (user
 
 SECRET_KEYS = ("discord_webhook", "telegram_token")
 SETTING_DEFAULTS = {"discord_webhook": "", "telegram_token": "", "telegram_chat": "", "paused": False,
-                    "digest_hour": 8, "last_digest": "", "tour_done": False}
+                    "digest_hour": 8, "last_digest": "", "tour_done": False,
+                    "schedule_on": False, "schedule_times": "09:00, 13:00, 18:00"}   # upload at these times each day (this computer's clock)
 
 YT_SCOPES = "https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly"
 IG = "https://graph.instagram.com"
@@ -179,7 +180,9 @@ def connect_url(platform: str) -> str:
     if platform == "youtube":
         return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
             "client_id": cid, "redirect_uri": redirect, "response_type": "code", "scope": YT_SCOPES,
-            "access_type": "offline", "prompt": "consent", "state": state})
+            # select_account: "Add another" always shows Google's account and channel picker, so a second channel
+            # (or a Brand Account channel) can be chosen instead of silently reusing the last one
+            "access_type": "offline", "prompt": "consent select_account", "state": state})
     if platform == "instagram":
         return "https://www.instagram.com/oauth/authorize?" + urlencode({
             "client_id": cid, "redirect_uri": redirect, "response_type": "code", "scope": IG_SCOPES, "state": state})
@@ -237,6 +240,22 @@ def read_clip_link(token: str):
 _settings_mem: dict = {}
 
 
+def parse_times(text) -> list:
+    """"9:00, 13:30" -> ["09:00", "13:30"]: sorted, no repeats, at most 12. Raises ValueError for anything else."""
+    out = set()
+    for part in re.split(r"[,\n;]+", str(text or "")):
+        part = part.strip()
+        if not part:
+            continue
+        m = re.fullmatch(r"(\d{1,2}):(\d{2})", part)
+        if not m or int(m[1]) > 23 or int(m[2]) > 59:
+            raise ValueError(f"\"{part[:12]}\" is not a time. Write times like 09:00, 13:30, 18:00.")
+        out.add(f"{int(m[1]):02d}:{m[2]}")
+    if len(out) > 12:
+        raise ValueError("Use at most 12 upload times a day.")
+    return sorted(out)
+
+
 def settings() -> dict:
     u = ctx.uid()
     if u not in _settings_mem:
@@ -250,10 +269,12 @@ def save_settings(patch: dict) -> dict:
         for k, v in patch.items():
             if k not in SETTING_DEFAULTS:
                 continue
-            if k in ("paused", "tour_done"):
+            if k in ("paused", "tour_done", "schedule_on"):
                 v = bool(v)
             elif k == "digest_hour":
                 v = max(0, min(23, int(v)))
+            elif k == "schedule_times":
+                v = ", ".join(parse_times(v))
             else:
                 v = str(v).strip()[:300]
                 if k == "discord_webhook" and v and not v.startswith("https://discord.com/api/webhooks/"):
@@ -261,6 +282,8 @@ def save_settings(patch: dict) -> dict:
                 if k in SECRET_KEYS and v == "":
                     continue  # blank means "keep what is saved"
             s[k] = v
+        if s["schedule_on"] and not parse_times(s["schedule_times"]):
+            raise ValueError("Add at least one upload time, or turn the schedule off.")
         _write("settings.json", s)
         return s
 
@@ -268,6 +291,115 @@ def save_settings(patch: dict) -> dict:
 def public_settings() -> dict:
     s = settings()
     return {k: (bool(v) if k in SECRET_KEYS else v) for k, v in s.items()}
+
+
+# ------------------------------------------------------------------ channel settings and groups
+# Kept apart from accounts.json on purpose: that file is rewritten whole when a token is refreshed (from the
+# posting threads) and when an account is connected again, and neither may wipe a channel's group or schedule.
+# Account ids never change (yt_<channel id>), so these survive disconnecting and connecting again.
+CHANNEL_KEYS = ("group", "schedule_on", "times", "ahead")
+
+
+def _channels() -> dict:
+    data = _read("channels.json", {})
+    if not isinstance(data, dict):
+        data = {}
+    return {"groups": [g for g in data.get("groups", []) if isinstance(g, dict) and g.get("id")],
+            "prefs": {k: v for k, v in (data.get("prefs") or {}).items() if isinstance(v, dict)}}
+
+
+def groups() -> list:
+    return _channels()["groups"]
+
+
+def prefs(aid) -> dict:
+    return dict(_channels()["prefs"].get(aid) or {})
+
+
+def schedule_for(aid) -> tuple:
+    """(upload times, the channel's own?) The channel's own times when it has set them, else the default
+    schedule from Settings. An empty list means no schedule: posts go out after the gap set on the creator."""
+    p = prefs(aid)
+    if "schedule_on" in p:
+        return (list(p.get("times") or []) if p["schedule_on"] else []), True
+    s = settings()
+    return (parse_times(s["schedule_times"]) if s["schedule_on"] else []), False
+
+
+def uploads_ahead(aid) -> bool:
+    """YouTube only: upload as soon as possible and let YouTube publish at the scheduled time (on by default)."""
+    return str(aid).startswith("yt_") and prefs(aid).get("ahead", True) is not False
+
+
+def save_channel(aid, patch: dict) -> dict:
+    """Change one channel's group or schedule. Raises ValueError with a message for the page."""
+    with _lock:
+        data = _channels()
+        p = dict(data["prefs"].get(aid) or {})
+        if "group" in patch:
+            g = str(patch["group"] or "")
+            if g and not any(x["id"] == g for x in data["groups"]):
+                raise ValueError("That group no longer exists.")
+            p["group"] = g
+        if "times" in patch:
+            p["times"] = parse_times(", ".join(patch["times"]) if isinstance(patch["times"], list) else patch["times"])
+        if "schedule_on" in patch:
+            p["schedule_on"] = bool(patch["schedule_on"])
+            p.setdefault("times", schedule_for(aid)[0] or parse_times(SETTING_DEFAULTS["schedule_times"]))
+        if "ahead" in patch:
+            p["ahead"] = bool(patch["ahead"])
+        if p.get("schedule_on") and not p.get("times"):
+            raise ValueError("Add at least one upload time, or turn the schedule off.")
+        data["prefs"][aid] = p
+        _write("channels.json", data)
+        return p
+
+
+def add_group(name) -> dict:
+    name = re.sub(r"\s+", " ", str(name or "")).strip()[:40]
+    if not name:
+        raise ValueError("Give the group a name.")
+    with _lock:
+        data = _channels()
+        if any(g["name"].lower() == name.lower() for g in data["groups"]):
+            raise ValueError("There is already a group with that name.")
+        if len(data["groups"]) >= 50:
+            raise ValueError("Use at most 50 groups.")
+        g = {"id": "g_" + secrets.token_hex(4), "name": name}
+        data["groups"].append(g)
+        _write("channels.json", data)
+        return g
+
+
+def rename_group(gid, name) -> dict:
+    name = re.sub(r"\s+", " ", str(name or "")).strip()[:40]
+    if not name:
+        raise ValueError("Give the group a name.")
+    with _lock:
+        data = _channels()
+        g = next((g for g in data["groups"] if g["id"] == gid), None)
+        if not g:
+            raise KeyError(gid)
+        if any(x["name"].lower() == name.lower() and x["id"] != gid for x in data["groups"]):
+            raise ValueError("There is already a group with that name.")
+        g["name"] = name
+        _write("channels.json", data)
+        return g
+
+
+def delete_group(gid):
+    """The group goes; its channels stay, ungrouped."""
+    with _lock:
+        data = _channels()
+        data["groups"] = [g for g in data["groups"] if g["id"] != gid]
+        for p in data["prefs"].values():
+            if p.get("group") == gid:
+                p["group"] = ""
+        _write("channels.json", data)
+
+
+def in_group(gid) -> list:
+    return [a["id"] for a in _all() if prefs(a["id"]).get("group") == gid]
 
 
 # ------------------------------------------------------------------ accounts
@@ -280,8 +412,18 @@ def get(aid):
 
 
 def list_accounts() -> list:
-    return [{"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES[a["platform"]], "name": a["name"],
-             "added": a["added"], "detail": a.get("detail", "")} for a in _all()]
+    ch = _channels()
+    known = {g["id"] for g in ch["groups"]}
+    out = []
+    for a in _all():
+        p = ch["prefs"].get(a["id"]) or {}
+        times, own = schedule_for(a["id"])
+        out.append({"id": a["id"], "platform": a["platform"], "label": PLATFORM_NAMES[a["platform"]], "name": a["name"],
+                    "added": a["added"], "detail": a.get("detail", ""),
+                    "group": p.get("group") if p.get("group") in known else "",
+                    "schedule": {"on": bool(times), "times": times, "own": own,
+                                 "ahead": uploads_ahead(a["id"])}})
+    return out
 
 
 def _put(acc):
@@ -338,19 +480,47 @@ def _yt_token(acc) -> str:
     return acc["access_token"]
 
 
-def youtube_upload(acc, path: Path, title: str, description: str, tags: list, privacy: str):
+class LimitReached(RuntimeError):
+    """YouTube's daily limit: for the whole server's Google project (`channel` False), or for one channel (True).
+    Not a real failure: the upload waits until the limit resets and goes then."""
+    def __init__(self, msg, channel=False):
+        super().__init__(msg)
+        self.channel = channel
+
+
+def _yt_limits(r):
+    if r.status_code in (403, 429):
+        text = r.text
+        if "uploadLimitExceeded" in text:
+            raise LimitReached("This channel reached YouTube's daily upload limit.", channel=True)
+        # a short burst limit (rateLimitExceeded) is not this: it is an ordinary error, tried again in 10 minutes
+        if "quotaExceeded" in text or "youtube.quota" in text:
+            raise LimitReached("YouTube's daily upload allowance for this server's Google project is used up.")
+    return r
+
+
+def rfc3339(t: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))
+
+
+def youtube_upload(acc, path: Path, title: str, description: str, tags: list, privacy: str, publish_at: float = None):
+    """Upload a Short. With `publish_at`, the video is uploaded private and YouTube itself makes it public at that
+    time (YouTube's own scheduling: nothing needs to be running then)."""
     token = _yt_token(acc)
+    status = {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}
+    if publish_at:
+        status.update(privacyStatus="private", publishAt=rfc3339(publish_at))   # YouTube requires private for this
     meta = {"snippet": {"title": re.sub(r"[<>]", "", title)[:100] or "Clip", "description": re.sub(r"[<>]", "", description)[:4900],
                         "tags": tags[:15], "categoryId": "20"},
-            "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}}
+            "status": status}
     size = path.stat().st_size
-    start = _check(httpx.post("https://www.googleapis.com/upload/youtube/v3/videos",
+    start = _check(_yt_limits(httpx.post("https://www.googleapis.com/upload/youtube/v3/videos",
                               params={"uploadType": "resumable", "part": "snippet,status"}, json=meta,
                               headers={"Authorization": f"Bearer {token}", "X-Upload-Content-Type": "video/mp4",
-                                       "X-Upload-Content-Length": str(size)}, timeout=60), "Starting the YouTube upload")
+                                       "X-Upload-Content-Length": str(size)}, timeout=60)), "Starting the YouTube upload")
     with path.open("rb") as f:
-        done = _check(httpx.put(start.headers["Location"], content=f.read(),
-                                headers={"Authorization": f"Bearer {token}", "Content-Type": "video/mp4"}, timeout=900),
+        done = _check(_yt_limits(httpx.put(start.headers["Location"], content=f.read(),
+                                           headers={"Authorization": f"Bearer {token}", "Content-Type": "video/mp4"}, timeout=900)),
                       "Uploading to YouTube").json()
     return done["id"], f"https://www.youtube.com/shorts/{done['id']}"
 

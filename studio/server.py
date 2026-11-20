@@ -712,7 +712,7 @@ def sync(v: str = ""):
         return _sync_unchanged(v) or {"v": token}
     from . import notices
     return {"v": token, "jobs": [jobs.public(j) for j in jobs.list_jobs()], "creators": _creator_rows(),
-            "accounts": accounts.list_accounts(), "ai": usage.brief(), "unread": notices.unread()}
+            "accounts": accounts.list_accounts(), "groups": accounts.groups(), "ai": usage.brief(), "unread": notices.unread()}
 
 
 @app.get("/api/jobs")
@@ -1477,6 +1477,74 @@ def remove_account(aid: str):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------- channels: groups, upload times, which creators feed them
+@app.get("/api/channels")
+def channels():
+    return posting.channels_overview()
+
+
+SCHEDULE_KEYS = ("schedule_on", "times", "ahead")
+
+
+@app.put("/api/accounts/{aid}")
+def edit_channel(aid: str, body: dict = Body(...)):
+    """A channel's group, upload times and the creators whose clips go to it. Waiting posts move onto new times."""
+    if not accounts.get(aid):
+        raise HTTPException(404, "That channel is not connected.")
+    try:
+        patch = {k: body[k] for k in ("group",) + SCHEDULE_KEYS if k in body}
+        if patch:
+            accounts.save_channel(aid, patch)
+        if isinstance(body.get("feeds"), list):
+            want = {str(x) for x in body["feeds"]}
+            for c in creators.all_creators():
+                has = aid in c["accounts"]
+                if (c["id"] in want) != has:
+                    creators.update(c["id"], {"accounts": [a for a in c["accounts"] if a != aid] + ([aid] if not has else [])})
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    moved = posting.reschedule(aid) if any(k in body for k in SCHEDULE_KEYS) else 0
+    return {"moved": moved}
+
+
+@app.post("/api/groups")
+def new_group(body: dict = Body(...)):
+    try:
+        g = accounts.add_group(body.get("name"))
+        for aid in [str(a) for a in body.get("accounts", [])][:200]:
+            if accounts.get(aid):
+                accounts.save_channel(aid, {"group": g["id"]})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return g
+
+
+@app.put("/api/groups/{gid}")
+def edit_group(gid: str, body: dict = Body(...)):
+    """Rename a group, and/or give every channel in it the same upload times."""
+    try:
+        if "name" in body:
+            accounts.rename_group(gid, body["name"])
+        elif not any(g["id"] == gid for g in accounts.groups()):
+            raise KeyError(gid)
+        patch = {k: body[k] for k in SCHEDULE_KEYS if k in body}
+        moved = 0
+        for aid in accounts.in_group(gid) if patch else []:
+            accounts.save_channel(aid, patch)
+            moved += posting.reschedule(aid)
+    except KeyError:
+        raise HTTPException(404, "No such group")
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+    return {"moved": moved}
+
+
+@app.delete("/api/groups/{gid}")
+def remove_group(gid: str):
+    accounts.delete_group(gid)
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- connecting YouTube, Instagram and TikTok
 # Connect sends the browser to the platform's own sign-in page; the platform sends it back here, and the person lands
 # on Settings, Connected apps, with the account added (or a message saying what went wrong).
@@ -1634,10 +1702,46 @@ def add_posts(body: dict = Body(...)):
     return {"queued": len(made)}
 
 
+@app.post("/api/posts/queue-video")
+def queue_video(body: dict = Body(...)):
+    job = jobs.get(str(body.get("job")))
+    if not job:
+        raise HTTPException(404, "No such video")
+    n = posting.queue_video(job, [str(a) for a in body.get("accounts", [])][:20])
+    if not n:
+        raise HTTPException(400, "Nothing was queued. Pick an account, and make sure the clips are finished and not already queued for it.")
+    return {"queued": n}
+
+
+@app.post("/api/posts/plan")
+def plan_posts(body: dict = Body(...)):
+    """One click: every ready clip onto the chosen channels' upload times. `dry` only says what would happen."""
+    ids = [str(a) for a in body.get("accounts", [])][:200]
+    if body.get("group"):
+        ids += accounts.in_group(str(body["group"]))
+    if body.get("all"):
+        ids += [a["id"] for a in accounts.list_accounts()]
+    try:
+        min_score = max(0, min(100, int(body.get("min_score") or 0)))
+        return posting.plan(ids, str(body["creator"]) if body.get("creator") else None, min_score, bool(body.get("dry")))
+    except (ValueError, TypeError) as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/posts/retry-failed")
+def retry_failed_posts():
+    return {"retried": posting.retry_failed()}
+
+
+@app.post("/api/posts/reschedule")
+def reschedule_posts():
+    return {"moved": posting.reschedule()}
+
+
 @app.post("/api/posts/{pid}/{action}")
 def post_action(pid: str, action: str):
     try:
-        {"cancel": posting.cancel, "retry": posting.retry}[action](pid)
+        {"cancel": posting.cancel, "retry": posting.retry, "dismiss": posting.dismiss}[action](pid)
     except KeyError:
         raise HTTPException(404)
     except ValueError as e:

@@ -49,6 +49,8 @@ check("each platform shows the address to register", apps["tiktok"]["redirect"],
 r = a.put("/api/apps", json={"platform": "tiktok", "client_id": "", "client_secret": "tiktok-secret-value2"}, headers=ORIGIN)
 check("a new secret alone keeps the saved id", accounts.app_keys("tiktok"), ("awtiktokkey123", "tiktok-secret-value2"))
 check("everyone can connect now", b.get("/api/status").json()["connect"], {"youtube": True, "instagram": True, "tiktok": True})
+check("Add another always shows Google's account and channel picker",
+      "select_account" in parse_qs(urlparse(b.get("/oauth/youtube/start").headers["location"]).query)["prompt"][0])
 
 # ---- YouTube cookies, for servers YouTube refuses
 from studio import media

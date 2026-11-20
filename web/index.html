@@ -607,6 +607,8 @@ dialog::backdrop{background:rgba(14,12,11,.42);animation:fadein .16s ease}
 .dlg{padding:24px;width:450px;max-width:100%;display:flex;flex-direction:column;gap:14px}
 .dlg h2{font-size:18px;font-weight:600;color:var(--brand-ink)}
 .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.dlg .seg{background:var(--muted)}
+.dlg .look .ot{margin:4px 0 8px}
 .editor{display:grid;grid-template-columns:minmax(240px,340px) minmax(300px,450px);max-height:calc(100vh - 48px)}
 .editor .stage{background:#17110E;display:grid;place-items:center;position:relative;min-height:320px}
 .editor video,.editor .stage img{width:100%;max-height:calc(100vh - 48px);aspect-ratio:9/16;object-fit:contain;display:block}
@@ -821,6 +823,65 @@ dialog[open]{animation:fadein .16s ease}
   .set-sec h2{font-size:16px}
   .ai-big{font-size:24px}
 }
+
+/* ---------- channels: many posting channels, each with its own upload times, in groups */
+.ch-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--brand-soft);border-color:var(--brand-line)}
+.ch-hero h2{font-size:16px;font-weight:600;color:var(--brand-ink);margin-bottom:4px}
+.ch-hero .help{max-width:640px;color:var(--brand-deep)}
+.chgroup{margin:26px 0 10px}
+.grp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.grp-head h3{font-size:15px;font-weight:600;color:var(--brand-ink);display:inline;margin-right:8px}
+.chgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.chgrid .empty{grid-column:1/-1;padding:28px 20px}
+.chcard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.chhead{display:flex;align-items:center;gap:12px}
+.chname{display:flex;flex-direction:column;min-width:0;flex:1}
+.chname b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chsched{display:flex;gap:10px;align-items:flex-start}.chsched>svg{color:var(--brand-deep);margin-top:2px}
+.tchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tchip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:999px;background:var(--muted);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--brand-ink)}
+.tchip button{border:0;background:transparent;padding:0;display:grid;place-items:center;cursor:pointer;color:var(--dim)}
+.tchip button svg{width:12px;height:12px}.tchip button:hover{color:var(--bad)}
+.tchips.edit{margin:0;min-height:30px;align-items:center}.tchips.edit .tchip{height:30px;background:var(--brand-soft)}
+.chmode{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--dim)}.chmode svg{width:15px;height:15px;color:var(--good);margin-top:1px}
+.chmode.local svg{color:var(--brand-deep)}
+.chstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:8px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.chstats span{display:flex;flex-direction:column;font-size:12px;color:var(--dim)}
+.chstats b{font-size:18px;font-weight:600;color:var(--brand-ink);font-variant-numeric:tabular-nums}.chstats .bad b{color:var(--bad)}
+.chstats b small{font-size:13px;font-weight:500;color:var(--faint)}
+.chsec>small{display:block;font-size:12px;font-weight:600;color:var(--dim);margin-bottom:6px}
+.chsec .row .pill{cursor:pointer}
+.nextlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.nextlist li{display:flex;gap:10px;align-items:center;font-size:13px;min-width:0}
+.nextlist time{flex:none;font-weight:600;color:var(--brand-ink);font-variant-numeric:tabular-nums;min-width:112px}
+.nextlist li>span:not(.pill){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.chfoot{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.dlg.wide{width:620px}
+.dlg .scroll table{width:100%}
+.quickfill{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px;border-radius:var(--r);background:var(--muted)}
+.quickfill>.sub{width:100%;font-weight:600}
+.quickfill label.f{flex:1;min-width:110px}
+.td-body{display:flex;flex-direction:column;gap:12px}.td-body.off{opacity:.45;pointer-events:none}
+.timein{max-width:150px}
+fieldset.radios{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+fieldset.radios legend{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:6px;padding:0}
+label.rd{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line-2);border-radius:var(--r);cursor:pointer}
+label.rd:hover{border-color:#D4CAC3}
+label.rd:has(input:checked){background:var(--brand-soft);border-color:var(--brand-line)}
+label.rd input{accent-color:var(--brand);margin:3px 0 0;flex:none}
+label.rd small{display:block;color:var(--dim);font-size:12px}
+.flabel{font-size:12px;color:var(--dim);font-weight:600;display:block;margin-bottom:7px}
+.accgroups{display:flex;flex-direction:column;gap:12px}
+.accgroup-h{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;color:var(--brand-ink)}
+.guide ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
+.guide li b{color:var(--brand-ink)}
+.guide .warnline{margin:0}
+.chlist{display:flex;flex-direction:column;gap:8px}
+.chrow{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r);background:var(--muted);min-width:0}
+.chrow .applogo{width:32px;height:32px;border-radius:8px}.chrow .applogo svg{width:18px;height:18px}
+.chrow .chname{flex:1}
+.chrow .when{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap}
+@media (max-width:560px){.chgrid{grid-template-columns:1fr}.nextlist time{min-width:96px}.chrow .when{display:none}}
 </style>
 </head>
 <body>
@@ -1087,6 +1148,10 @@ const PLAT = {
   kick: {name: "Kick", bg: "#0B0E0F", fg: "#53FC18", hint: "https://kick.com/name",
     svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M1.5 1.5h7v6h2.5V5h2.5V2.5H16v-1h6.5v7H20V11h-2.5v2H20v2.5h2.5v7H16v-1h-2.5V19H11v-2.5H8.5v6h-7z"/></svg>'},
 };
+// the places clips are posted to (the creators' channels above are where clips come from)
+const POSTLOGO = {youtube: {bg: "#FF0000", svg: '<svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>'},
+  instagram: {bg: "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", svg: '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>'},
+  tiktok: {bg: "#000", svg: '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .59.04.86.13v-3.5a6.37 6.37 0 0 0-.86-.05A6.34 6.34 0 0 0 3.15 15.7a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.81-4.43V8.73a8.2 8.2 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1-.11z"/></svg>'}};
 const platLogo = k => `<span class="logo" style="background:${PLAT[k].bg};color:${PLAT[k].fg}">${PLAT[k].svg}</span>`;
 const avatarUrl = (c, k) => `/api/creators/${encodeURIComponent(c.id)}/avatar?${k ? "p=" + k + "&" : ""}v=${Math.round(((k ? c.profiles?.[k] : c.profile) || {}).at || 0)}`;
 const fmtK = n => (n = Number(n) || 0) >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
@@ -1260,6 +1325,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#nav"), nav("overview", navIc("home", "overview"), "Home") +
     nav("library", navIc("film", "library"), "All videos", (() => { const w = S.jobs.filter(j => ["queued", "running"].includes(j.status)).length;
       return w ? `<span class="working" title="${w} working now"><i></i>${w} working</span>` : S.jobs.length ? `<span class="count">${S.jobs.length}</span>` : ""; })()) +
+    nav("channels", navIc("send", "channels"), "Channels", S.accounts.length ? `<span class="count">${S.accounts.length}</span>` : "") +
     `<h4><span>Creators</span></h4>` +
     S.creators.map(c => nav("c:" + c.id, cav(c), c.name,
       c.live_job ? `<span class="sb-tag rec" title="Recording now"><i></i>Rec</span>`
@@ -1275,7 +1341,11 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
       <button class="icon-btn bell" data-act="bell" title="Notifications" aria-label="Notifications${S.status.unread ? `, ${S.status.unread} new` : ""}" aria-haspopup="dialog">${ic("bell")}${S.status.unread ? `<span class="dotn">${S.status.unread > 9 ? "9+" : S.status.unread}</span>` : ""}</button></div>` : ""));
   const c = creator();
   const recording = S.creators.filter(x => x.live_job).length;
-  let title = {overview:"Home", library:"All videos", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
+  let title = {overview:"Home", library:"All videos", channels:"Channels", settings:"Settings", usage:"AI usage"}[S.view] || "", sub = "", act = "";
+  if (S.view === "channels") {
+    sub = "Where your clips are posted: each channel's upload times, groups and queue.";
+    act = `<button class="btn" data-act="gnew">${ic("plus")}New group</button><button class="btn primary" data-act="go" data-v="settings" data-tab="apps">${ic("plug")}Connect a channel</button>`;
+  }
   if (S.view === "usage") sub = "What the AI has been used for.";
   if (S.view === "overview") sub = `${greeting()}. ${S.creators.length} creator${S.creators.length === 1 ? "" : "s"}${recording ? `, ${recording} recording now` : ""}.`;
   if (S.view === "library") sub = "Every video and recording, across all creators.";
@@ -1288,8 +1358,9 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
     const nJobs = S.jobs.filter(j => j.creator === c.id).length, nLog = (c.log || []).length;
     tabs = [["clips", "Clips", "scissors", nJobs], ["setup", "Setup", "cog", 0], ["activity", "Activity", "clock", nLog]].map(([k, l, i, n]) =>
       `<button class="tabbtn ${S.ctab === k ? "on" : ""}" data-act="tab" data-t="${k}" role="tab" aria-selected="${S.ctab === k}">${ic(i)}${l}${n ? `<span class="n">${n > 99 ? "99+" : n}</span>` : ""}</button>`).join("");
-    act = c.live_job ? `<button class="btn danger" data-act="stoplive" data-j="${esc(c.live_job)}">${ic("stop")}Stop recording</button>`
-                     : `<button class="btn primary" data-act="golive"><span class="rdot"></span>${liveOn(c).length ? "Record live stream" : "Start recording"}</button>`;
+    act = (S.accounts.length ? `<button class="btn" data-act="chplan" data-creator="${esc(c.id)}" title="Upload and schedule every ready clip of ${esc(c.name)}">${ic("send")}<span>Schedule<span class="long"> all clips</span></span></button>` : "")
+        + (c.live_job ? `<button class="btn danger" data-act="stoplive" data-j="${esc(c.live_job)}">${ic("stop")}Stop recording</button>`
+                      : `<button class="btn primary" data-act="golive"><span class="rdot"></span>${liveOn(c).length ? "Record live stream" : "Start recording"}</button>`);
   }
   if (S.view === "overview" || S.view === "library") {
     const L = S.status.links || {};
@@ -1313,7 +1384,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   put($("#title"), `<span>${esc(title)}</span>`); put($("#subtitle"), subHtml ?? esc(sub)); put($("#actions"), act);
 }
 
-const ROUTES = {overview: "", library: "videos", settings: "settings", usage: "usage"};
+const ROUTES = {overview: "", library: "videos", channels: "channels", settings: "settings", usage: "usage"};
 function pathFor(v, tab) {
   if (v.startsWith("c:")) return `/app/creators/${encodeURIComponent(v.slice(2))}${tab && tab !== "clips" ? "/" + tab : ""}`;
   if (v === "settings") return "/app/settings" + (tab ? "/" + tab : "");
@@ -1346,6 +1417,7 @@ function go(v, tab, fromHistory) {
   if (v === "overview") view.innerHTML = `<div id="ov"></div>`;
   else if (v === "library") view.innerHTML = `<div id="add"></div><div id="jobs"></div>`;
   else if (v === "settings") view.innerHTML = `<div id="sform"></div>`;
+  else if (v === "channels") { view.innerHTML = `<div id="chv"></div>`; loadChannels(); if (!S.overview) loadOverview(); }
   else if (v === "usage") { view.innerHTML = `<div id="usage"></div>`; loadUsage(); }
   else view.innerHTML = `<div id="stream"></div><div id="cbody"></div>`;   // the live player stays put across tabs: no restart, no rebuffer
   if ($("#add")) drawAdd(v === "overview" ? "hero" : "compact");
@@ -1575,7 +1647,7 @@ function takeLink(A, u, input) {
     drawAtt();
     if (A.queued && !A.links.some(x => x.state === "wait")) {
       A.queued = false;
-      if (canGo(A) && att() === A) makeClips(); else { drawAtt(); if (!canGo(A)) toast("That link couldn't be used. The reason is shown on it.", "bad"); }
+      if (canGo(A) && att() === A) makeClips(); else { A.look = null; drawAtt(); if (!canGo(A)) toast("That link couldn't be used. The reason is shown on it.", "bad"); }
     }
   });
 }
@@ -1597,7 +1669,7 @@ document.addEventListener("click", e => {
   const r = e.target.closest("[data-rm]"), A = att(); if (!r || A.busy) return;
   if (r.dataset.rm === "link") A.links = A.links.filter(l => l.id !== r.dataset.id);
   else { const i = A.files.findIndex(f => f.id === r.dataset.id); if (i >= 0) { URL.revokeObjectURL(A.files[i].src); A.files.splice(i, 1); } }
-  if (!A.links.some(l => l.state === "wait")) A.queued = false;
+  if (!A.links.some(l => l.state === "wait")) { A.queued = false; A.look = null; }
   drawAtt();
 });
 
@@ -1670,17 +1742,57 @@ function langNote(A, lang) {
     ${onlyYT ? `<button type="button" class="btn sm" data-act="langgo" data-v="${esc(lang)}">Make clips with YouTube's captions</button>` : ""}
     <button type="button" class="btn sm ghost" data-act="langno">Cancel</button></span></span></div>`);
 }
+/* Asked every time Make clips is pressed: with or without captions, with or without the big text at the top.
+   It starts on the last choice made, so pressing Make clips again is all it takes to keep the same look. */
+function askLook() {
+  let big = true;
+  try { big = localStorage.getItem("bigText") !== "0"; } catch {}
+  const cap = $("#o_captions") ? $("#o_captions").checked : true, own = $("#o_hook")?.value.trim();
+  const seg = (id, label, on, yes, yesSub, no, noSub) => `<div class="ot" id="${id}_l">${label}</div><input type="hidden" id="${id}" value="${on ? 1 : 0}">
+    <div class="seg" role="group" aria-labelledby="${id}_l">
+      <button type="button" data-seg="${id}" data-v="1" aria-pressed="${on}">${yes}<small>${yesSub}</small></button>
+      <button type="button" data-seg="${id}" data-v="0" aria-pressed="${!on}">${no}<small>${noSub}</small></button></div>`;
+  return new Promise(res => {
+    const d = $("#formdlg");
+    d.innerHTML = `<form method="dialog" class="dlg"><h2>How should your clips look?</h2>
+      <p class="help">Choose before clipping starts. You can still change each clip afterwards.</p>
+      <div class="look">${seg("lk_cap", "Captions", cap, "With captions", "Words appear as they are said", "No captions", "Just the video and sound")}</div>
+      <div class="look">${seg("lk_big", "Big text", big, "With big text", own ? `"${esc(own)}"` : "A short title at the top", "No big text", "Nothing written on top")}</div>
+      <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" autofocus>${ic("scissors")}Make clips</button></div></form>`;
+    d.onclose = () => {
+      if (d.returnValue !== "yes") return res(null);
+      const look = {captions: $("#lk_cap").value === "1", big_text: $("#lk_big").value === "1"};
+      try { localStorage.setItem("bigText", look.big_text ? "1" : "0"); } catch {}
+      const t = $("#o_captions");   // the Options panel shows the same choice afterwards
+      if (t) { t.checked = look.captions; t.dataset.overridden = "true"; syncCaptionStyle(t); }
+      res(look);
+    };
+    d.returnValue = "no"; d.showModal();
+  });
+}
 async function makeClips() {
   const A = att();
   if (A.busy) return;
   const typed = $("#url")?.value.trim();
   if (typed && looksLink(typed) && !isChannel(typed)) { clearTimeout(linkTimer); takeLink(A, typed, $("#url")); }
+  const waiting = A.links.some(l => l.state === "wait");
+  if (!waiting && !canGo(A)) {
+    toast(A.note || "Paste a YouTube, Twitch or Kick video link, or add a video file first.", "bad");
+    $("#url")?.focus();
+    return;
+  }
+  if (!A.look) {        // not yet asked for these videos (a link still being found keeps the answer until it starts)
+    const look = await askLook();
+    if (!look || A.busy) return;
+    A.look = look;
+  }
   if (A.links.some(l => l.state === "wait")) {   // still looking a link up: start as soon as it is found
     A.queued = true; drawAtt();
     toast("Finding the video first. Clipping starts as soon as it's found.");
     return;
   }
   if (!canGo(A)) {
+    A.look = null;
     toast(A.note || "Paste a YouTube, Twitch or Kick video link, or add a video file first.", "bad");
     $("#url")?.focus();
     return;
@@ -1690,7 +1802,8 @@ async function makeClips() {
   $("#langnote")?.remove();
   A.busy = true; drawAtt();
   let started = 0, failed = 0;
-  const who = targetCreator(), opts = jobOptions();
+  const who = targetCreator(), opts = {...jobOptions(), ...A.look};
+  A.look = null;
   for (const l of A.links.filter(x => x.state === "ok")) {
     l.sending = true; drawAtt();
     try { await send("/api/jobs", {url: l.url, options: opts, creator: who}); l.state = "done"; started++; }
@@ -1717,7 +1830,7 @@ function scoreCls(s) { return s >= 80 ? "s-hi" : s >= 60 ? "s-mid" : ""; }
 function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
     const cls = p.status === "posted" ? "ok" : p.status === "failed" ? "bad" : "warn";
-    const txt = `${esc(p.account_name)} · ${p.status === "scheduled" ? clock(p.due_at) : p.status}`;
+    const txt = `${esc(p.account_name)} · ${p.status === "scheduled" ? clock(p.publish_at || p.due_at) : p.status === "posted" && p.publish_at > Date.now() / 1000 ? "live " + clock(p.publish_at) : p.status}`;
     return p.url ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
   }).join("");
 }
@@ -1782,6 +1895,7 @@ function jobHtml(j) {
   return `<div class="job-head"><div class="jt"><span class="jthumb">${pic}${j.duration ? `<span class="du">${fmt(j.duration)}</span>` : ""}</span><div style="min-width:0"><h3>${esc(j.title || j.source.name)}</h3><p class="sub">${meta}</p></div></div>
       <div class="row" style="flex-wrap:nowrap;gap:4px">${busy ? "" : `
         ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="dlall" data-j="${j.id}" title="Download all clips of this video" aria-label="Download all clips of this video">${ic("down")}</button>` : ""}
+        ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="qvideo" data-j="${j.id}" title="Add all clips of this video to the upload queue" aria-label="Add all clips of this video to the upload queue">${ic("clock")}</button>` : ""}
         <button class="btn sm icon ghost" data-act="deljob" data-j="${j.id}" title="Delete" aria-label="Delete this video and its clips">${ic("trash")}</button>
         <label class="selck" title="Select this video and its clips"><input type="checkbox" data-sel="j:${j.id}" ${sel().has("j:" + j.id) ? "checked" : ""} aria-label="Select this video"></label>`}</div></div>
     ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>` : ""}
@@ -1823,6 +1937,18 @@ function zipDownload(ids) {
   if (ids.length > 150) return toast("That is a lot at once. Download up to 150 clips at a time.", "bad");
   toast(ids.length === 1 ? "Preparing your clip…" : `Preparing ${ids.length} clips as one download…`, "ok");
   const a = document.createElement("a"); a.href = "/api/clips.zip?ids=" + encodeURIComponent(ids.join(",")); a.download = ""; document.body.append(a); a.click(); a.remove();
+}
+function pickAccounts(title, text, preset = []) {
+  return new Promise(res => {
+    const d = $("#formdlg");
+    if (!S.accounts.length) { toast("Connect an account in Settings first.", "bad"); return res(null); }
+    const on = preset.length ? preset : S.accounts.length === 1 ? [S.accounts[0].id] : [];
+    d.innerHTML = `<form method="dialog" class="dlg"><h2>${esc(title)}</h2><p class="help">${esc(text)}</p>
+      ${accountChecks("data-qacc", on)}
+      <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes">Add to queue</button></div></form>`;
+    d.onclose = () => { const ids = $$("#formdlg [data-qacc]:checked").map(i => i.value); res(d.returnValue === "yes" && ids.length ? ids : null); };
+    d.returnValue = "no"; d.showModal();
+  });
 }
 function askTyped(title, text, mustType, okLabel) {
   return new Promise(res => {
@@ -1913,11 +2039,12 @@ function drawCreatorForm() {
         <label class="f span">Description for every clip<textarea data-k="description_text" rows="3" maxlength="2000" placeholder="Left empty, the AI writes a different one for each clip">${esc(c.description_text || "")}</textarea><small class="sub" style="font-weight:400">Written once, used as the description of every clip of this creator, exactly as typed. It is posted as it is, without the AI's hashtags.</small></label>
         <label class="f">Minutes of live stream to keep<input data-k="buffer_min" type="number" value="${c.buffer_min}"></label></div></div>
     <div class="card"><h2>Posting</h2><p class="help">${A.length ? "Choose the accounts this creator's clips go to. One account can be shared by several creators." : "No accounts are connected yet. Connect one in Settings, then come back."}</p>
-      ${A.length ? `<div class="row" style="margin-bottom:16px">${A.map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
+      ${A.length ? `<div style="margin-bottom:16px">${accountChecks("data-acc", c.accounts)}</div>
+        <div class="row" style="margin-bottom:16px"><button class="btn primary" data-act="chplan" data-creator="${esc(c.id)}">${ic("send")}Upload & schedule all ready clips</button><button class="btn" data-act="go" data-v="channels">${ic("clock")}Channel upload times</button></div>` : `<button class="btn" data-act="go" data-v="settings" data-tab="apps" style="margin-bottom:16px">${ic("plug")}Connect a channel</button>`}
       <div class="fields"><label class="sw span"><input type="checkbox" data-k="autopost" ${c.autopost ? "checked" : ""}><span>Post new clips automatically<small>Clips that score high enough go out without you approving them.</small></span></label>
         <label class="f">Only auto-post clips scoring at least<input data-k="post_min_score" type="number" min="0" max="100" value="${c.post_min_score}"></label>
-        <label class="f">Minutes between posts on one account<input data-k="post_gap_min" type="number" value="${c.post_gap_min}"></label>
-        <label class="f">Most posts per account per day<input data-k="daily_cap" type="number" value="${c.daily_cap}"></label>
+        <label class="f">Minutes between posts on one account<input data-k="post_gap_min" type="number" value="${c.post_gap_min}"><small class="sub" style="font-weight:400">Only for channels without set upload times.</small></label>
+        <label class="f">Most posts per account per day<input data-k="daily_cap" type="number" value="${c.daily_cap}"><small class="sub" style="font-weight:400">A channel with its own times posts once per time instead.</small></label>
         <label class="f">Who can see posts (YouTube, TikTok)<select data-k="privacy">${opts({public:"Public", unlisted:"Unlisted", private:"Private"}, c.privacy)}</select></label>
         <label class="f">Campaign pay per 1,000 views ($)<input data-k="rate_per_1k" type="number" step="0.1" min="0" value="${c.rate_per_1k}"></label>
         <label class="f span">Line added to every post (credit, campaign tag)<input data-k="post_footer" value="${esc(c.post_footer)}" placeholder="Clipped from @streamer"></label></div></div>
@@ -1962,6 +2089,7 @@ function nextSteps(o) {
   if (!S.creators.length) st.push(["Add your first creator", "Give each streamer their own workspace, settings and folder.", "newcreator"]);
   if (!S.jobs.length) st.push(["Make your first clips", "Paste a video link in the box above.", "focusurl"]);
   if (!S.accounts.length) st.push(["Connect a posting account", "YouTube, Instagram or TikTok, in one click.", "go:settings"]);
+  else if (!S.accounts.some(a => a.schedule?.on)) st.push(["Set upload times", "Give each channel its own times, like 6 a day from 8:00.", "go:channels"]);
   if (S.creators.length && !S.creators.some(c => c.auto_watch)) st.push(["Turn on auto-record", "Record by itself whenever a creator goes live.", "go:c:" + S.creators[0].id + ":setup"]);
   return st;
 }
@@ -1970,7 +2098,10 @@ function drawOverview() {
   const sum = k => o.creators.reduce((a, r) => a + r[k], 0);
   const d14 = k => (o.daily || []).reduce((a, d) => a + d[k], 0);
   const state = r => r.state === "recording" ? `<span class="pill live"><span class="dot"></span>Recording</span>` : r.state === "waiting" ? `<span class="pill warn">Waiting for live</span>` : `<span class="pill">Idle</span>`;
-  const pst = p => p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>` : `<span class="pill warn">${clock(p.due_at)}</span>`;
+  const now = Date.now() / 1000;
+  const pst = p => p.status === "posted" && p.publish_at > now ? `<span class="pill ok" title="Uploaded. YouTube makes it public then.">On YouTube · ${clock(p.publish_at)}</span>`
+    : p.status === "posted" ? `<span class="pill ok">Posted</span>` : p.status === "failed" ? `<span class="pill bad">Failed</span>` : p.status === "posting" ? `<span class="pill warn">Posting now</span>`
+    : `<span class="pill warn" title="${p.publish_at ? `Uploads ${esc(clock(p.due_at))}, goes live ${esc(clock(p.publish_at))}` : ""}">${clock(p.publish_at || p.due_at)}</span>`;
   const steps = nextSteps(o);
   put(box, `<div class="tiles">
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
@@ -1996,7 +2127,18 @@ function drawOverview() {
       ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
       ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
-      : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
+      : `<p class="help">Nothing queued or posted yet.</p>`}</div>
+    <div class="card"><div class="card-head"><div><h2>Channels</h2><p class="sub">${(o.channels || []).length ? `${plural(o.channels.length, "channel")} · ${o.channels.reduce((n, a) => n + a.waiting, 0)} waiting · ${o.channels.reduce((n, a) => n + a.on_youtube, 0)} scheduled on YouTube`
+          : "Connect your channels, give each its own upload times, and schedule every clip in one click."}</p></div>
+        <div class="row">${(o.channels || []).length ? `<button class="btn primary" data-act="chplan" data-all="1">${ic("send")}Upload & schedule all</button>` : ""}<button class="btn" data-act="go" data-v="channels">Open Channels${ic("arrowr")}</button></div></div>
+      ${(o.channels || []).length ? `<div class="chlist">${o.channels.slice(0, 8).map(a => `<div class="chrow">${chLogo(a.platform)}<div class="chname"><b>${esc(a.name)}</b><span class="sub">${a.schedule.on ? `${a.schedule.times.length} a day · ${esc(a.schedule.times.join(", "))}` : "No set times"}</span></div>
+          <span class="when">${a.next.length ? `Next: ${esc(dayWhen(a.next[0].at))}` : "Nothing waiting"}</span><button class="btn sm" data-act="chedit" data-id="${esc(a.id)}">${ic("clock")}Times</button></div>`).join("")}</div>`
+        : `<button class="btn primary" data-act="go" data-v="settings" data-tab="apps">${ic("plug")}Connect a channel</button>`}</div>
+    ${(o.failed || []).length ? `<div class="card"><div class="card-head"><div><h2>Failed uploads</h2><p class="sub">These did not go out, even after trying again. Nothing is retried until you tap.</p></div>
+        <button class="btn primary" data-act="pretryall">${ic("send")}Retry all (${o.failed.length})</button></div>
+      <div class="scroll"><table class="stack"><tr><th>Clip</th><th>Creator</th><th>Account</th><th></th></tr>
+      ${o.failed.map(p => `<tr><td data-l="Clip" class="c-main">${esc(p.title)}<div class="err" style="margin:2px 0 0">${esc(p.error || "Failed")}</div></td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td>
+        <td class="c-act" style="text-align:right"><button class="btn sm primary" data-act="pretry" data-id="${p.id}">Upload now</button> <button class="btn sm" data-act="pdismiss" data-id="${p.id}">Remove</button></td></tr>`).join("")}</table></div></div>` : ""}`);
 }
 
 /* ============================================================ AI usage */
@@ -2043,6 +2185,243 @@ function drawUsage() {
       ${k.recent.map(u => `<tr><td class="sub">${when(u.t)}</td><td>${esc(u.purpose)}</td><td>${esc(u.creator_name || "None")}</td><td class="sub">${esc(u.where || "")}</td><td class="num">${(u.tokens || 0).toLocaleString()}</td></tr>`).join("")}</table></div>`
       : `<p class="help">No AI calls yet.</p>`}</div>`;
 }
+
+/* ============================================================ channels */
+// Every connected channel with its own upload times, sorted into groups, and one click that puts every ready clip
+// on them. "Channels" here are the places clips are posted to; a creator's channels are where clips come from.
+const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+const hm = t => new Date(t * 1000).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+function dayWhen(t) {
+  const d = new Date(t * 1000), days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
+  return (days === 0 ? "Today" : days === 1 ? "Tomorrow" : d.toLocaleDateString([], {weekday:"short", day:"numeric", month:"short"})) + " " + hm(t);
+}
+const chLogo = pf => `<span class="applogo" style="background:${POSTLOGO[pf]?.bg || "var(--muted)"}">${POSTLOGO[pf]?.svg || ""}</span>`;
+async function loadChannels() {
+  try { S.chan = await api("/api/channels"); S.groups = S.chan.groups; S.chAt = Date.now(); } catch { return; }
+  drawChannels();
+}
+function refreshPosting() { tick(); return S.view === "channels" ? loadChannels() : loadOverview(); }
+// [[group, its channels]], groups in the order they were made, then the channels in none
+function groupsOf(list) {
+  const gs = S.groups || [], out = gs.map(g => [g, list.filter(a => a.group === g.id)]);
+  const rest = list.filter(a => !gs.some(g => g.id === a.group));
+  if (rest.length || !gs.length) out.push([null, rest]);
+  return out;
+}
+// tick boxes for choosing channels, grouped, with "Tick all" per group
+function accountChecks(attr, on) {
+  const box = a => `<label class="ck"><input type="checkbox" ${attr} value="${esc(a.id)}" ${on.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`;
+  const gs = groupsOf(S.accounts).filter(([, list]) => list.length);
+  if (gs.length <= 1 && !gs[0]?.[0]) return `<div class="row">${S.accounts.map(box).join("")}</div>`;
+  return `<div class="accgroups">${gs.map(([g, list]) => `<div data-gbox><div class="accgroup-h"><b>${g ? esc(g.name) : "Not in a group"}</b>
+      ${list.length > 1 ? `<button type="button" class="btn sm ghost" data-gtick>Tick all ${list.length}</button>` : ""}</div>
+      <div class="row">${list.map(box).join("")}</div></div>`).join("")}</div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-gtick]"); if (!b) return;
+  const boxes = $$("input[type=checkbox]", b.closest("[data-gbox]")), all = boxes.every(i => i.checked);
+  const changed = boxes.filter(i => i.checked === all);
+  changed.forEach(i => { i.checked = !all; });
+  changed.at(-1)?.dispatchEvent(new Event("change", {bubbles: true}));   // the creator form saves once, with every box
+});
+
+function chCard(a) {
+  const s = a.schedule, yt = a.platform === "youtube";
+  const sched = s.on ? `<b>${s.times.length} a day</b>${s.own ? "" : ` <span class="sub">· default times</span>`}<div class="tchips">${s.times.map(t => `<span class="tchip">${esc(t)}</span>`).join("")}</div>`
+    : `<b>No set times</b><div class="sub">Clips go out after each creator's gap. Set times to post on a schedule.</div>`;
+  const mode = !s.on ? "" : yt && s.ahead ? `<p class="chmode">${ic("check")}<span>YouTube publishes at these times. PeakCut uploads each clip up to a day before.</span></p>`
+    : `<p class="chmode local">${ic("clock")}<span>PeakCut posts at the time, so keep this computer on.</span></p>`;
+  const feeds = a.feeds.length ? a.feeds.map(f => `<a class="pill" href="#" data-act="go" data-v="c:${esc(f.id)}">${esc(f.name)}</a>`).join("")
+    : `<span class="sub">No creator posts here yet. <a class="lnk" href="#" data-act="chedit" data-id="${esc(a.id)}">Pick some</a></span>`;
+  const next = a.next.length ? `<ul class="nextlist">${a.next.map(n => `<li><time>${esc(dayWhen(n.at))}</time><span title="${esc(n.title)}">${esc(n.title)}</span>${n.status === "posted" ? `<span class="pill ok">On YouTube</span>` : n.status === "posting" ? `<span class="pill warn">Uploading</span>` : ""}</li>`).join("")}</ul>`
+    : `<p class="sub">Nothing waiting.</p>`;
+  return `<div class="chcard">
+    <div class="chhead">${chLogo(a.platform)}<div class="chname"><b title="${esc(a.name)}">${esc(a.name)}</b><span class="sub">${esc(a.label)}${a.detail ? " · " + esc(a.detail) : ""}</span></div>
+      <button class="icon-btn" data-act="chedit" data-id="${esc(a.id)}" title="Times, group and creators" aria-label="Settings for ${esc(a.name)}">${ic("cog")}</button></div>
+    <div class="chsched">${ic("clock")}<div>${sched}</div></div>${mode}
+    <div class="chstats"><span><b>${a.waiting}</b>waiting</span>${yt ? `<span><b>${a.on_youtube}</b>on YouTube</span>` : ""}
+      <span><b>${a.today}${s.on ? `<small>/${s.times.length}</small>` : ""}</b>today</span><span class="${a.failed ? "bad" : ""}"><b>${a.failed}</b>failed</span></div>
+    <div class="chsec"><small>Clips from</small><div class="row">${feeds}</div></div>
+    <div class="chsec"><small>Coming up</small>${next}${a.booked_until && a.waiting + a.on_youtube > a.next.length ? `<p class="sub" style="margin-top:6px">Booked until ${esc(dayWhen(a.booked_until))}</p>` : ""}</div>
+    <div class="chfoot"><button class="btn primary sm" data-act="chplan" data-id="${esc(a.id)}">${ic("send")}Upload & schedule</button>
+      <button class="btn sm" data-act="chedit" data-id="${esc(a.id)}">${ic("clock")}Times and creators</button></div></div>`;
+}
+function drawChannels() {
+  const box = $("#chv"); if (!box) return;
+  const o = S.chan; if (!o) return put(box, `<div class="set-load">Loading…</div>`);
+  const list = o.channels, sum = k => list.reduce((n, r) => n + (r[k] || 0), 0), ov = S.overview?.schedule || {};
+  if (!list.length) return put(box, `<div class="card ch-hero"><div><h2>Connect your first channel</h2>
+      <p class="help">Connect as many YouTube channels as you like (plus Instagram and TikTok). Give each one its own upload times, sort them into groups, and upload and schedule every ready clip in one click.</p></div>
+      <div class="row"><button class="btn primary" data-act="go" data-v="settings" data-tab="apps">${ic("plus")}Connect a channel</button><button class="btn" data-act="chhow">${ic("bulb")}How to connect</button></div></div>`);
+  put(box, `<div class="tiles">
+      <div class="tile"><i>${ic("send")}</i><b>${list.length}</b><span>Channels${S.groups?.length ? ` in ${plural(S.groups.length, "group")}` : ""}</span></div>
+      <div class="tile"><i>${ic("clock")}</i><b>${sum("waiting")}</b><span>Waiting to upload</span></div>
+      <div class="tile"><i>${ic("check")}</i><b>${sum("on_youtube")}</b><span>Scheduled on YouTube</span></div>
+      <div class="tile"><i>${ic(sum("failed") ? "warn" : "chart")}</i><b>${sum("posted_today")}</b><span>Live today${sum("failed") ? ` · <span style="color:var(--bad)">${sum("failed")} failed</span>` : ""}</span></div></div>
+    <div class="card ch-hero"><div><h2>Upload and schedule everything</h2>
+      <p class="help">Every finished clip that hasn't gone to a channel yet takes that channel's next free upload time, best clip first. Each channel gets the clips of the creators that post to it. You see the plan before anything happens.</p></div>
+      <div class="row"><button class="btn primary" data-act="chplan" data-all="1">${ic("send")}Upload & schedule all</button><button class="btn" data-act="chhow">${ic("bulb")}How to connect a channel</button></div></div>
+    ${groupsOf(list).map(([g, cs]) => `<section class="chgroup"><div class="grp-head"><div><h3>${g ? esc(g.name) : S.groups?.length ? "Not in a group" : "Your channels"}</h3><span class="sub">${plural(cs.length, "channel")}</span></div>
+        ${g ? `<div class="row"><button class="btn sm primary" data-act="chplan" data-group="${esc(g.id)}" ${cs.length ? "" : "disabled"}>${ic("send")}Upload & schedule group</button>
+          <button class="btn sm" data-act="gtimes" data-id="${esc(g.id)}" ${cs.length ? "" : "disabled"}>${ic("clock")}Same times for all</button>
+          <button class="btn sm ghost" data-act="grename" data-id="${esc(g.id)}">Rename</button><button class="btn sm ghost" data-act="gdelete" data-id="${esc(g.id)}" title="Delete group" aria-label="Delete group ${esc(g.name)}">${ic("trash")}</button></div>` : ""}</div>
+      <div class="chgrid">${cs.length ? cs.map(chCard).join("") : `<div class="empty"><b>No channels in this group yet</b>Press a channel's <b>Times and creators</b> button and choose this group.</div>`}</div></section>`).join("")}
+    <div class="card"><div class="card-head"><div><h2>Default upload times</h2><p class="sub">For channels that have no times of their own. A channel's own times always win.</p></div></div>
+      <div class="fields"><label class="sw span"><input type="checkbox" id="schon" ${ov.on ? "checked" : ""}><span>Use default upload times<small>Off: channels without their own times post after each creator's gap.</small></span></label>
+        <label class="f span">Times each day (this computer's clock)<input id="schtimes" value="${esc(ov.times || "")}" placeholder="09:00, 13:00, 18:00"><small class="sub" style="font-weight:400">24-hour times, separated by commas.</small></label></div>
+      <div class="row"><button class="btn primary" data-act="schsave">${ic("check")}Save default times</button><button class="btn" data-act="resched">${ic("clock")}Re-spread waiting clips on the times</button></div></div>`);
+}
+
+// a channel's (or a whole group's) upload times. Resolves to {on, times, ahead} or null.
+function timesDialog(o) {
+  return new Promise(res => {
+    const d = $("#formdlg");
+    let times = [...(o.times || [])];
+    d.innerHTML = `<form method="dialog" class="dlg wide"><h2>${esc(o.title)}</h2><p class="help">${esc(o.text)}</p>
+      <label class="sw"><input type="checkbox" id="td_on" ${o.on ? "checked" : ""}><span>Upload at set times each day<small>Off: clips go out after the gap set on each creator.</small></span></label>
+      <div class="td-body" id="td_body">
+        <div class="quickfill"><span class="sub">Quick fill</span>
+          <label class="f">Videos a day<input id="td_n" type="number" min="1" max="12" value="${times.length || 6}"></label>
+          <label class="f">First at<input id="td_from" type="time" value="${esc(times[0] || "08:00")}"></label>
+          <label class="f">Then every<select id="td_gap">${opts({30:"30 minutes", 60:"1 hour", 90:"1½ hours", 120:"2 hours", 180:"3 hours", 240:"4 hours"}, 60)}</select></label>
+          <button type="button" class="btn" id="td_fill">Fill in</button></div>
+        <div><span class="flabel">Upload times (this computer's clock)</span><div class="tchips edit" id="td_list"></div></div>
+        <div class="row"><input type="time" id="td_add" value="12:00" class="timein" aria-label="Time to add"><button type="button" class="btn sm" id="td_addbtn">${ic("plus")}Add time</button></div>
+        ${o.yt ? `<fieldset class="radios"><legend>How YouTube clips go out</legend>
+          <label class="rd"><input type="radio" name="td_mode" value="ahead" ${o.ahead !== false ? "checked" : ""}><span><b>YouTube publishes them (recommended)</b><small>Each clip is uploaded up to a day early as a scheduled video, and YouTube makes it public at its time, even if this computer is off by then.</small></span></label>
+          <label class="rd"><input type="radio" name="td_mode" value="local" ${o.ahead === false ? "checked" : ""}><span><b>PeakCut posts at the time</b><small>The clip is uploaded at its time. This computer must be on, with PeakCut running.</small></span></label></fieldset>` : ""}
+      </div>${o.extra || ""}
+      <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes">${ic("check")}Save</button></div></form>`;
+    const draw = () => {
+      times = [...new Set(times)].sort();
+      $("#td_list").innerHTML = times.length ? times.map(t => `<span class="tchip">${esc(t)}<button type="button" data-rm="${esc(t)}" aria-label="Remove ${esc(t)}">${ic("x")}</button></span>`).join("")
+        : `<span class="sub">No times yet. Use Quick fill, or add them one by one.</span>`;
+      $("#td_body").classList.toggle("off", !$("#td_on").checked);
+    };
+    $("#td_list").onclick = e => { const b = e.target.closest("[data-rm]"); if (b) { times = times.filter(t => t !== b.dataset.rm); draw(); } };
+    $("#td_addbtn").onclick = () => {
+      const v = $("#td_add").value;
+      if (times.length >= 12) return toast("At most 12 upload times a day.", "bad");
+      if (v) { times.push(v); draw(); }
+    };
+    $("#td_fill").onclick = () => {
+      const n = Math.max(1, Math.min(12, Number($("#td_n").value) || 1)), gap = Number($("#td_gap").value);
+      const [h, m] = ($("#td_from").value || "08:00").split(":").map(Number), out = [];
+      for (let i = 0; i < n && h * 60 + m + i * gap < 1440; i++) {
+        const t = h * 60 + m + i * gap;
+        out.push(`${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`);
+      }
+      times = out; draw();
+      if (out.length < n) toast(`Only ${out.length} fit before midnight.`);
+    };
+    $("#td_on").onchange = draw;
+    draw();
+    d.onclose = () => {
+      if (d.returnValue !== "yes") return res(null);
+      res({on: $("#td_on").checked, times, ...(o.yt ? {ahead: $("input[name=td_mode]:checked")?.value !== "local"} : {})});
+    };
+    d.returnValue = "no"; d.showModal();
+  });
+}
+async function editChannel(id) {
+  const a = (S.chan?.channels || []).find(x => x.id === id) || S.accounts.find(x => x.id === id); if (!a) return;
+  const feeds = a.feeds || S.creators.filter(c => c.accounts?.includes(id)).map(c => ({id: c.id}));
+  const extra = `<label class="f">Group<select id="td_group"><option value="">Not in a group</option>${(S.groups || []).map(g => `<option value="${esc(g.id)}" ${a.group === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></label>
+    <div><span class="flabel">Creators whose clips go to this channel</span>${S.creators.length ? `<div class="row">${S.creators.map(c => `<label class="ck"><input type="checkbox" data-feed value="${esc(c.id)}" ${feeds.some(f => f.id === c.id) ? "checked" : ""}>${esc(c.name)}</label>`).join("")}</div>`
+      : `<span class="sub">No creators yet. Add one from the sidebar first.</span>`}</div>`;
+  const r = await timesDialog({title: a.name, text: `${a.label} channel: when its clips go out, which group it's in, and which creators feed it.`,
+                               on: a.schedule.on, times: a.schedule.times, yt: a.platform === "youtube", ahead: a.schedule.ahead, extra});
+  if (!r) return;
+  // the closed dialog still holds what was chosen
+  const body = {schedule_on: r.on, times: r.times, group: $("#td_group").value, feeds: $$("#formdlg [data-feed]:checked").map(i => i.value),
+                ...(r.ahead === undefined ? {} : {ahead: r.ahead})};
+  const x = await send(`/api/accounts/${encodeURIComponent(id)}`, body, "PUT");
+  toast(x.moved ? `Saved. ${plural(x.moved, "waiting clip")} moved onto the new times.` : "Saved", "ok");
+  return refreshPosting();
+}
+function groupDialog(title, name = "", pick = false) {
+  return new Promise(res => {
+    const d = $("#formdlg");
+    d.innerHTML = `<form method="dialog" class="dlg"><h2>${esc(title)}</h2><p class="help">Groups keep channels together, for example by topic or language. You can upload to a whole group, or give it one schedule, in one click.</p>
+      <label class="f">Name<input id="gd_name" maxlength="40" value="${esc(name)}" placeholder="Gaming channels" autocomplete="off"></label>
+      ${pick && S.accounts.length ? `<div><span class="flabel">Channels in it</span><div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-gacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div></div>` : ""}
+      <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes">${pick ? "Make group" : "Save"}</button></div></form>`;
+    d.onclose = () => res(d.returnValue === "yes" ? {name: $("#gd_name").value.trim(), accounts: $$("#formdlg [data-gacc]:checked").map(i => i.value)} : null);
+    d.returnValue = "no"; d.showModal(); $("#gd_name").focus();
+  });
+}
+// one click: show the plan first (nothing kept), then do it
+async function planDialog(body) {
+  const d = $("#formdlg");
+  const show = async min => {
+    const r = await send("/api/posts/plan", {...body, min_score: min, dry: true});
+    const rows = r.channels.map(c => `<tr><td class="c-main"><b>${esc(c.name)}</b><div class="sub">${c.feeds.length ? "From " + esc(c.feeds.join(", ")) : "No creator posts here yet: pick some in the channel's settings"}</div></td>
+      <td class="num">${c.queued}</td><td>${c.queued ? `${esc(dayWhen(c.first))}${c.queued > 1 ? ` to ${esc(dayWhen(c.last))}` : ""}${c.ahead ? `<div class="sub">YouTube publishes them</div>` : ""}` : `<span class="sub">Nothing new</span>`}</td></tr>`).join("");
+    d.innerHTML = `<form method="dialog" class="dlg wide"><h2>${r.queued ? `Upload and schedule ${plural(r.queued, "clip")}?` : "Nothing new to schedule"}</h2>
+      <p class="help">${r.queued ? "Each clip takes its channel's next free upload time, best clip first. Clips still waiting can be cancelled from the Post queue on Home. Once a clip is uploaded to YouTube as a scheduled video, change or delete it in YouTube Studio." : "Every finished clip has already gone, or is waiting to go, to these channels. Make more clips, or let more creators post to them."}</p>
+      <div class="scroll"><table><tr><th>Channel</th><th class="num">Clips</th><th>When</th></tr>${rows}</table></div>
+      <label class="f">Only clips scoring at least<input type="number" id="pl_min" min="0" max="100" value="${min}"></label>
+      <div class="dlg-foot"><button class="btn" value="no">Cancel</button><button class="btn primary" value="yes" ${r.queued ? "" : "disabled"}>${ic("send")}Upload & schedule ${r.queued || ""}</button></div></form>`;
+    $("#pl_min").onchange = () => show(Math.max(0, Math.min(100, Number($("#pl_min").value) || 0))).catch(e => toast(e.message, "bad"));
+    if (!d.open) { d.returnValue = "no"; d.showModal(); }
+  };
+  await show(Number(body.min_score) || 0);
+  d.onclose = async () => {
+    if (d.returnValue !== "yes") return;
+    try {
+      const x = await send("/api/posts/plan", {...body, min_score: Math.max(0, Number($("#pl_min")?.value) || 0)});
+      toast(`${plural(x.queued, "clip")} scheduled on ${plural(x.channels.filter(c => c.queued).length, "channel")}`, "ok");
+      refreshPosting();
+    } catch (e) { toast(e.message, "bad"); }
+  };
+}
+function connectGuide() {
+  const d = $("#formdlg"), url = S.status.links?.repo;
+  d.innerHTML = `<form method="dialog" class="dlg wide guide"><h2>How to connect a YouTube channel</h2>
+    <ol><li><b>Once per server:</b> in <a class="lnk" href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud</a>, make a project, turn on <b>YouTube Data API v3</b>, set up the <b>OAuth consent screen</b>, and make an <b>OAuth client ID</b> (Web application).</li>
+      <li>Add PeakCut's address, shown in <b>Settings, Connected apps, YouTube, Set up</b>, under <b>Authorised redirect URIs</b>. Paste the Client ID and secret there.</li>
+      <li>On the consent screen, press <b>Publish app</b>. While it says "Testing", Google signs channels out after 7 days.</li>
+      <li><b>For each channel:</b> press <b>Connect</b> (then <b>Add another</b>), sign in, and pick the channel. Channels on a Brand Account show up in Google's list.</li>
+      <li>Here on Channels, press the channel's <b>Times and creators</b> button: choose its upload times, its group, and the creators whose clips go to it.</li>
+      <li>Press <b>Upload & schedule all</b>.</li></ol>
+    <p class="warnline">One Google project can upload 100 videos a day by default, shared by every channel (16 channels at 6 a day is 96). If the limit is reached, PeakCut waits for it to reset and carries on by itself. For more, use YouTube's quota extension form, not extra Google projects: YouTube's rules forbid that. Until Google audits the project, uploads may stay private.</p>
+    <div class="dlg-foot">${url ? `<a class="btn" href="${esc(url)}/blob/main/CHANNELS.md" target="_blank" rel="noopener">Full guide</a>` : ""}<a class="btn" href="/app/settings/apps">${ic("plug")}Connected apps</a><button class="btn primary" value="ok">Got it</button></div></form>`;
+  d.onclose = null; d.returnValue = ""; d.showModal();
+}
+async function channelAction(a, d) {
+  if (a === "chplan") {
+    if (d.creator) {
+      const c = S.creators.find(x => x.id === d.creator);
+      if (!c?.accounts?.some(id => S.accounts.some(x => x.id === id))) { toast("Pick which channels this creator posts to first.", "bad"); return go("c:" + d.creator, "setup"); }
+      return planDialog({creator: d.creator});
+    }
+    return planDialog(d.all ? {all: true} : d.group ? {group: d.group} : {accounts: [d.id]});
+  }
+  if (a === "chedit") return editChannel(d.id);
+  if (a === "chhow") return connectGuide();
+  if (a === "gnew") {
+    const r = await groupDialog("New group", "", true); if (!r) return;
+    await send("/api/groups", r); toast(`Group "${r.name}" made`, "ok"); return refreshPosting();
+  }
+  const g = (S.groups || []).find(x => x.id === d.id); if (!g) return;
+  if (a === "grename") {
+    const r = await groupDialog("Rename group", g.name); if (!r) return;
+    await send(`/api/groups/${g.id}`, {name: r.name}, "PUT"); return refreshPosting();
+  }
+  if (a === "gdelete") {
+    if (!await ask(`Delete the group "${g.name}"?`, "Its channels stay connected, with their times. They just won't be in a group.", "Delete group", true)) return;
+    await api(`/api/groups/${g.id}`, {method: "DELETE"}); return refreshPosting();
+  }
+  if (a === "gtimes") {
+    const members = (S.chan?.channels || []).filter(x => x.group === g.id), first = members.find(x => x.schedule.own) || members[0];
+    const r = await timesDialog({title: `Same times for all of ${g.name}`, text: `All ${plural(members.length, "channel")} in this group get these upload times. Clips waiting for them move onto the new times.`,
+                                 on: true, times: first?.schedule.times || [], yt: members.some(x => x.platform === "youtube"), ahead: first?.schedule.ahead});
+    if (!r) return;
+    const x = await send(`/api/groups/${g.id}`, {schedule_on: r.on, times: r.times, ...(r.ahead === undefined ? {} : {ahead: r.ahead})}, "PUT");
+    toast(x.moved ? `Saved. ${plural(x.moved, "waiting clip")} moved onto the new times.` : "Saved", "ok"); return refreshPosting();
+  }
+}
+const CHANNEL_ACTS = new Set(["chplan", "chedit", "chhow", "gnew", "grename", "gdelete", "gtimes"]);
 
 /* ============================================================ settings */
 // With sign-in off there is no profile or password to manage. The AI section is for whoever runs the server.
@@ -2141,16 +2520,14 @@ async function drawSettings() {
       const mine = plat => conn.filter(a => (a.platform || a.label || "").toLowerCase().includes(plat));
       const listOf = arr => arr.length ? `<div class="applist">${arr.map(a => `<div><span class="pill ok">Connected</span><b>${esc(a.name)}</b><span class="sub">${esc(a.detail || "")}</span>
           <button class="btn sm ghost" data-act="accremove" data-id="${esc(a.id)}">Disconnect</button></div>`).join("")}</div>` : "";
-      const yt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>';
-      const ig = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23a3.7 3.7 0 0 1-.9 1.38c-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"/></svg>';
-      const tt = '<svg viewBox="0 0 24 24"><path fill="#fff" d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.3 0 .59.04.86.13v-3.5a6.37 6.37 0 0 0-.86-.05A6.34 6.34 0 0 0 3.15 15.7a6.34 6.34 0 0 0 10.86 4.43 6.3 6.3 0 0 0 1.81-4.43V8.73a8.2 8.2 0 0 0 4.77 1.52V6.8a4.85 4.85 0 0 1-1-.11z"/></svg>';
+      const yt = POSTLOGO.youtube.svg, ig = POSTLOGO.instagram.svg, tt = POSTLOGO.tiktok.svg;
       const ok = S.status.connect || {}, admin = me.is_admin;
       const setup = admin ? await api("/api/apps").catch(() => null) : null;
       const GUIDE = {
         youtube: ["https://console.cloud.google.com/apis/credentials", "Google Cloud",
           ["Create a project and turn on <b>YouTube Data API v3</b>.", "Create an <b>OAuth client ID</b> of type <b>Web application</b>.",
            "Add the address below under <b>Authorised redirect URIs</b>.", "Paste its Client ID and Client secret here."],
-          "Until Google verifies your app, people see a warning when they connect, and uploads stay private."],
+          "On the OAuth consent screen press <b>Publish app</b>: while it is in Testing, Google signs channels out after 7 days. Until Google verifies the app, people see a warning when they connect, and uploads may stay private until the project passes YouTube's API audit."],
         instagram: ["https://developers.facebook.com/apps", "Meta for Developers",
           ["Create a <b>Business</b> app and add <b>Instagram</b> (API setup with Instagram login).",
            "Under <b>Business login settings</b>, add the address below as a redirect URL.", "Paste the <b>Instagram app ID</b> and <b>Instagram app secret</b> here."],
@@ -2176,7 +2553,7 @@ async function drawSettings() {
         return `<div class="appcard"><span class="applogo" style="background:${bg}">${logo}</span>
           <div class="apptx"><b>${name}</b><span>${desc}</span>${listOf(accs)}</div><div class="appact">${act}</div>${panel}</div>`;
       };
-      body.innerHTML = `<section class="set-sec"><h2>Connected apps</h2><p class="help">Connect the accounts PeakCut posts clips to: press Connect, sign in on the platform's own page, and you're back here. PeakCut never sees your passwords. Then pick which accounts each creator posts to, in that creator's Setup.</p>
+      body.innerHTML = `<section class="set-sec"><h2>Connected apps</h2><p class="help">Connect the accounts PeakCut posts clips to: press Connect, sign in on the platform's own page, and you're back here. PeakCut never sees your passwords. Connect as many channels as you like: for another YouTube channel press <b>Add another</b> and pick it in Google's list. Then set each channel's upload times, groups and creators on <a class="lnk" href="/app/channels" data-act="go" data-v="channels">Channels</a>. <a class="lnk" href="#" data-act="chhow">How to connect a channel</a></p>
         <div class="apps">
           ${card("youtube", "YouTube", yt, "#FF0000", "Post clips to your channel as Shorts.")}
           ${card("instagram", "Instagram", ig, "linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)", "Post clips as Reels. Needs a Creator or Business account.")}
@@ -2221,6 +2598,7 @@ function drawClipDlg(full) {
           <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
         <h3>On the video</h3>
         <label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
+        <label class="sw"><input type="checkbox" data-f="big_text" ${c.big_text === false ? "" : "checked"}>Show the big text</label>
         <label class="sw"><input type="checkbox" data-f="captions" data-caption-toggle ${c.captions === false ? "" : "checked"}>Generate captions</label>
         <div class="two"><label class="f">Caption style<select data-f="style" data-caption-style ${c.captions === false ? "disabled" : ""}>${opts(S.status.styles, c.style)}</select></label>
           <label class="f">Layout<select data-f="layout">${opts(S.status.layouts, c.layout)}</select></label></div>
@@ -2234,7 +2612,7 @@ function drawClipDlg(full) {
         <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
-        ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
+        ${S.accounts.length ? `${accountChecks("data-pacc", [])}
           <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
@@ -2256,6 +2634,7 @@ $("#clipdlg").addEventListener("click", e => { if (e.target === e.currentTarget)
 function render() {
   drawShell(); drawJobs(); drawStream(); drawSelBar();
   if (S.view === "overview") drawOverview();
+  if (S.view === "channels") drawChannels();
   if ($("#clog")) drawLog();
   if (D.jid) drawClipDlg(false);
 }
@@ -2266,15 +2645,18 @@ async function tick() {
     S.syncV = got.v;
     if (!fresh) {                                   // nothing of ours changed on the server
       if (S.view === "overview" && stale) { S.overview = await api("/api/overview"); S.ovAt = Date.now(); render(); }
+      if (S.view === "channels" && Date.now() - (S.chAt || 0) > 20000) await loadChannels();
       return;
     }
     const {jobs, creators, accounts} = got;
     // a server from before multi-channel support sends only `channel`: show it as that platform's channel
     creators.forEach(c => { if (!c.channels) { const u = c.channel || "", k = /youtu/i.test(u) ? "youtube" : /twitch/i.test(u) ? "twitch" : /kick/i.test(u) ? "kick" : ""; c.channels = k ? {[k]: u} : {}; } });
     S.jobs = jobs; S.creators = creators; S.accounts = accounts;
+    if (got.groups) S.groups = got.groups;
     if (got.ai) S.status.ai = got.ai;
     if (got.unread != null) S.status.unread = got.unread;
     if (S.view === "overview") { S.overview = await api("/api/overview"); S.ovAt = Date.now(); }
+    if (S.view === "channels") { S.chan = await api("/api/channels"); S.groups = S.chan.groups; S.chAt = Date.now(); }
     if (creatorId() && !creator()) return go("overview");
     render();
   } catch {}
@@ -2349,6 +2731,7 @@ document.addEventListener("click", async e => {
   if (b.tagName === "A") e.preventDefault();
   try {
     if (a === "go") { closePops(); return go(d.v, d.tab); }
+    if (CHANNEL_ACTS.has(a)) return await channelAction(a, d);
     if (a === "aimodels") {
       b.disabled = true;
       try {
@@ -2385,7 +2768,7 @@ document.addEventListener("click", async e => {
       try { await makeClips(); } finally { A.langOk = null; }
       return;
     }
-    if (a === "langno") return $("#langnote")?.remove();
+    if (a === "langno") { att().look = null; return $("#langnote")?.remove(); }   // asked again next time
     if (a === "menu") return $("#app").classList.toggle("open");
     if (a === "collapse") { const m = $("#app").classList.toggle("mini"); try { localStorage.setItem("mini", m ? "1" : ""); } catch {} return; }
     if (a === "toggleopts") { const p = $(".composer-opts"), open = !p.classList.contains("open"); p.classList.toggle("open", open); p.inert = !open; b.classList.toggle("on", open); b.setAttribute("aria-expanded", String(open)); return; }
@@ -2556,7 +2939,16 @@ document.addEventListener("click", async e => {
     if (a === "csave") return void await saveCreator();
     if (a === "cdiscard") { drawCreatorForm(); return toast("Changes discarded"); }
     if (a === "pause") { await send("/api/settings", {paused:!S.overview.paused}, "PUT"); return loadOverview(); }
-    if (a === "pcancel" || a === "pretry") { await api(`/api/posts/${d.id}/${a === "pcancel" ? "cancel" : "retry"}`, {method:"POST"}); return loadOverview(); }
+    if (a === "schsave") { await send("/api/settings", {schedule_on:$("#schon").checked, schedule_times:$("#schtimes").value}, "PUT"); toast("Default times saved", "ok"); await loadOverview(); return refreshPosting(); }
+    if (a === "resched") { const r = await send("/api/posts/reschedule", {}); toast(r.moved ? `Moved ${r.moved} waiting clip${r.moved > 1 ? "s" : ""} onto the schedule` : "No waiting clips to move", "ok"); return refreshPosting(); }
+    if (a === "pretryall") { const r = await send("/api/posts/retry-failed", {}); toast(`Uploading ${r.retried} clip${r.retried === 1 ? "" : "s"} now`, "ok"); return loadOverview(); }
+    if (a === "pdismiss") { await api(`/api/posts/${d.id}/dismiss`, {method:"POST"}); return loadOverview(); }
+    if (a === "qvideo") {
+      const j = jobOf(d.j), pick = await pickAccounts("Queue all clips", "Choose where these clips go. Each takes the next free upload time.", (S.creators.find(c => c.id === j?.creator)?.accounts || []).filter(id => S.accounts.some(a => a.id === id)));
+      if (!pick) return;
+      const r = await send("/api/posts/queue-video", {job:d.j, accounts:pick}); toast(`${r.queued} clip${r.queued > 1 ? "s" : ""} added to the queue`, "ok"); return tick();
+    }
+    if (a === "pcancel" || a === "pretry") { await api(`/api/posts/${d.id}/${a === "pcancel" ? "cancel" : "retry"}`, {method:"POST"}); return refreshPosting(); }
     if (a === "ssave") { await saveSettings(); toast("Saved", "ok"); return drawSettings(); }
     if (a === "plansave") {
       const p = {}; $$("#sform [data-plan]").forEach(i => { (p[i.dataset.plan] ??= {})[i.dataset.f] = Number(i.value); });
