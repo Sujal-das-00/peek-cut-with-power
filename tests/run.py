@@ -77,6 +77,7 @@ def main() -> int:
                 ("speech models for other languages: Arabic, downloads, the second machine", ["tests/test_speech.py"]),
                 ("post text: write again with AI, edit, post without re-making", ["tests/test_post_text.py"]),
                 ("finding clips by sight: silent video, references, parts, voice-overs", ["tests/test_vision.py"]),
+                ("cancelling a video or a clip while it is being made", ["tests/test_cancel.py"]),
                 ("live recording stops and empty stream URLs", ["tests/test_live.py"])]
         for name, args in runs:
             print(f"\n=== {name} ===", flush=True)

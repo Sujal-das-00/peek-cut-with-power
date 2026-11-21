@@ -16,7 +16,6 @@ The cost of a picture model is the number of pictures, so everything here is abo
 import math
 import re
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 
@@ -81,7 +80,7 @@ def estimate(span: float, parts=0, detail: str = DEFAULT_DETAIL, how: str = "gem
 
 
 # ---------------------------------------------------------------- frames, locally
-def sample(src: Path, a: float, b: float, step: float, work: Path) -> tuple:
+def sample(src: Path, a: float, b: float, step: float, work: Path, cancel=None) -> tuple:
     """One small frame every `step` seconds from a to b, and the seconds at which the picture cuts to something
     else. Returns ([(time, jpeg path), ...], [cut times]). One pass over the video, on this computer: no tokens."""
     work.mkdir(parents=True, exist_ok=True)
@@ -90,8 +89,7 @@ def sample(src: Path, a: float, b: float, step: float, work: Path) -> tuple:
     cmd = ["ffmpeg", "-y", "-nostats", "-loglevel", "info", "-ss", f"{a:.2f}", "-t", f"{b - a:.2f}", "-i", str(src), "-an",
            "-filter_complex", chain, "-map", "[f]", "-q:v", "6", "-pix_fmt", "yuvj420p", str(work / "f%05d.jpg"),
            "-map", "[s]", "-f", "null", "-"]
-    p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-                       creationflags=media.NO_WINDOW, timeout=max(600, (b - a) * 4))
+    p = media.run_cancellable(cmd, timeout=max(600, (b - a) * 4), cancel=cancel)
     if p.returncode != 0:
         raise RuntimeError(f"ffmpeg failed: {p.stderr[-800:]}")
     cuts = sorted(round(a + float(m), 2) for m in re.findall(r"pts_time:\s*([0-9.]+)", p.stderr))

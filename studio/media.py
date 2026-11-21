@@ -78,6 +78,31 @@ def site_allowed(url: str) -> bool:
     return u.scheme in ("http", "https") and any(host == s or host.endswith("." + s) for s in config.ALLOWED_SITES)
 
 
+class Cancelled(Exception):
+    """The person pressed Cancel. Raised from inside the work so it stops, and caught where the work was started."""
+
+
+def run_cancellable(cmd, cwd=None, timeout=3600, cancel=None):
+    """Like subprocess.run, but looked at twice a second: when `cancel()` says so, the program is killed at once and
+    Cancelled is raised. Returns the finished process (return code, output, errors)."""
+    import subprocess as sp
+    p = sp.Popen(cmd, cwd=cwd, stdout=sp.PIPE, stderr=sp.PIPE, text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
+    end = time.time() + timeout
+    while True:
+        try:
+            out, err = p.communicate(timeout=0.5)
+            return sp.CompletedProcess(cmd, p.returncode, out, err)
+        except sp.TimeoutExpired:
+            if cancel and cancel():
+                p.kill()
+                p.communicate()
+                raise Cancelled()
+            if time.time() > end:
+                p.kill()
+                p.communicate()
+                raise sp.TimeoutExpired(cmd, timeout)
+
+
 def run(cmd, cwd=None, timeout=3600):
     try:
         p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8",
@@ -251,9 +276,11 @@ def save_thumb(job_dir: Path, url: str = "", video: Path = None) -> bool:
     return False
 
 
-def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
+def download_audio(url: str, job_dir: Path, on_progress=None, cancel=None) -> Path:
     """Audio only: a few seconds even for long videos, and all the AI needs to pick clips."""
     def hook(d):
+        if cancel and cancel():
+            raise Cancelled()
         total = d.get("total_bytes") or d.get("total_bytes_estimate")
         if on_progress and d.get("status") == "downloading" and total:
             on_progress(d.get("downloaded_bytes", 0) / total)
@@ -264,10 +291,14 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
     return _biggest(job_dir, "audio_src")
 
 
-def download(url: str, job_dir: Path, height=720) -> Path:
+def download(url: str, job_dir: Path, height=720, cancel=None) -> Path:
     """The whole video. Used for shorter videos, where this is quicker than fetching pieces."""
+    def hook(d):
+        if cancel and cancel():
+            raise Cancelled()
+
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
-                                    "outtmpl": str(job_dir / "source.%(ext)s")}) as ydl:
+                                    "outtmpl": str(job_dir / "source.%(ext)s"), "progress_hooks": [hook]}) as ydl:
         ydl.download([url])
     return _biggest(job_dir, "source")
 

@@ -69,6 +69,10 @@ are there, and only then offer to delete the old folder. Never delete anything w
   never sent. `ai.look` is the one call that sends pictures; `brain.ask_vision` retries it like `ask_ai` does.
 - **A silent video is normal now**: `media.probe(path, require_audio=False)`, and `render` handles four sound cases
   (own sound, none, a voice-over alone, a voice-over over the own sound turned down).
+- **Cancelling is a flag that work looks at, plus killing ffmpeg** (`jobs.cancel`, `jobs.cancel_clip`): `job["cancelled_at"]`
+  or `clip["cancel"]` is checked between steps (`jobs._check`) and by `media.run_cancellable`, which stops the running program
+  within half a second. New code that runs for a long time inside a job should call `_check(job)`, or pass `cancel=` along.
+  `media.Cancelled` is an ordinary exception: a bare `except Exception` must let it through (or call `_cancelled` first).
 - **Adding a spoken language**: add a row to `MODELS` in `studio/fetch_model.py`. Any NVIDIA NeMo transducer model
   exported for sherpa-onnx works; its word pieces must mark word starts with `▁`. The language a video is in comes
   from `options["lang"]` (or a creator's `lang`) and is passed to `transcribe.transcribe(..., lang=...)`.

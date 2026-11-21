@@ -1066,6 +1066,28 @@ def clip_write(jid: str, cid: str):
         raise HTTPException(503, str(e))
 
 
+@app.post("/api/jobs/{jid}/cancel")
+def cancel_job(jid: str):
+    """Stop a video that is waiting or being made. Clips already finished are kept."""
+    job = _job_or_404(jid)
+    try:
+        jobs.cancel(job)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    return jobs.public(job)
+
+
+@app.post("/api/jobs/{jid}/clips/{cid}/cancel")
+def cancel_clip(jid: str, cid: str):
+    """Stop one clip that is waiting or being made: a new clip disappears, a re-made one goes back to how it was."""
+    job, clip = _clip_or_404(jid, cid)
+    try:
+        jobs.cancel_clip(job, clip)
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    return {"ok": True}
+
+
 @app.delete("/api/jobs/{jid}")
 def delete_job(jid: str):
     job = _job_or_404(jid)

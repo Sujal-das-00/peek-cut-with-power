@@ -2,12 +2,11 @@
 import os
 import re
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 
 from . import config, roman
-from .media import NO_WINDOW, run
+from .media import Cancelled, run, run_cancellable
 
 W, H = config.OUT_W, config.OUT_H
 
@@ -318,9 +317,10 @@ def _sound(has_sound: bool, voice: bool) -> tuple:
     return ("", ["-an"])
 
 
-def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int, voiceover: Path | None = None) -> dict:
+def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int, voiceover: Path | None = None, cancel=None) -> dict:
     """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names.
-    `voiceover` is a sound file (made by tts.py) read over the clip, which starts at second 0 of the clip."""
+    `voiceover` is a sound file (made by tts.py) read over the clip, which starts at second 0 of the clip.
+    `cancel` is asked twice a second while ffmpeg works; when it says yes, ffmpeg is stopped and Cancelled is raised."""
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
     layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"))
@@ -339,12 +339,12 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     try:
         # The title and description are also written into the file itself, for any place that reads them from it.
         meta = {"title": clip.get("title") or "", "description": clip.get("description") or "", "comment": clip.get("description") or ""}
-        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face, meta=meta, voiceover=voiceover)
+        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face, meta=meta, voiceover=voiceover, cancel=cancel)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None, voiceover=None) -> dict:
+def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None, voiceover=None, cancel=None) -> dict:
     global _qsv_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
@@ -369,8 +369,7 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", X264[1], "-preset", X264[0]]))
     err = None
     for label, enc in encoders:
-        p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
-                           encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=_timeout(end - start))
+        p = run_cancellable(base + enc + [f"{name}.mp4"], cwd=work, timeout=_timeout(end - start), cancel=cancel)
         if p.returncode == 0:
             if label == "qsv":
                 _qsv_ok = True
