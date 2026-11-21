@@ -273,4 +273,6 @@ def find_part(frames: list, cuts: list, a: float, b: float, total: float, n: int
         if voice:
             t["voiceover"] = brain._text(c.get("voiceover"), 1500)
         clips.append(t)
-    return clips, model, tokens
+    # A model that takes few pictures per request is asked in several pieces: keep the best n of all of them.
+    clips.sort(key=lambda c: -c.get("score", 0))
+    return clips[:n], model, tokens

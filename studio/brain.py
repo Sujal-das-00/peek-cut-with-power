@@ -239,8 +239,33 @@ def ask_ai(prompt, schema=None, purpose="AI call", timeout=None):
     raise RuntimeError(f"The AI did not answer: {ai.explain(last) or last}")
 
 
+PICTURE_CAP = {}     # model -> most pictures it takes in one request, learned from its own error message
+
+
+def _picture_limit(e):
+    """The number a provider names when it refuses too many pictures ("supports up to 3 images"), else None."""
+    m = re.search(r"supports up to (\d+) images?", str(e))
+    return int(m.group(1)) if m and int(m.group(1)) > 0 else None
+
+
+def _look_in_pieces(model, prompt, images, schema, timeout, purpose):
+    """Send the pictures in as many requests as this model allows, and join the answers (lists are joined)."""
+    cap = PICTURE_CAP.get(model) or len(images) or 1
+    found, sent, wrote, first = [], 0, 0, None
+    for i in range(0, max(1, len(images)), cap):
+        out, s, w = ai.look(model, prompt, images[i:i + cap], schema, timeout)
+        usage.record(s, w, purpose)
+        sent, wrote = sent + s, wrote + w
+        if isinstance(out, list):
+            found.extend(out)
+        elif first is None:
+            first = out
+    return (found if first is None else first), sent, wrote
+
+
 def ask_vision(prompt, images, schema, purpose="Vision call", timeout=None):
     """Like ask_ai, but with pictures. The model chosen for pictures is tried first, then the others.
+    A model that takes only a few pictures per request gets them in several requests.
     Returns (the answer, the model that gave it, tokens used)."""
     if not config.ai_ready():
         raise RuntimeError("The AI is not set up on this server.")
@@ -248,19 +273,24 @@ def ask_vision(prompt, images, schema, purpose="Vision call", timeout=None):
     for model in ai.vision_models():
         for attempt in range(TRIES):
             try:
-                out, sent, wrote = ai.look(model, prompt, images, schema, timeout)
-                usage.record(sent, wrote, purpose)
+                out, sent, wrote = _look_in_pieces(model, prompt, images, schema, timeout, purpose)
                 ai.clear_problem()
                 return out, model, sent + wrote
             except Exception as e:  # noqa: BLE001
                 last = e
+                cap = _picture_limit(e)
+                if cap and cap < (PICTURE_CAP.get(model) or len(images)):
+                    PICTURE_CAP[model] = cap      # not a failure to wait out: send again in pieces of this size
+                    continue
                 wait = retry_wait(e, attempt, timeout)
                 if wait is None:
                     break
                 time.sleep(wait)
     ai.note_problem(last)
     hint = ""
-    if re.match(r"HTTP (400|404|422)\b", str(last)):
+    if "must be a string" in str(last):
+        hint = " That model can only read text, not pictures: pick one that can under Settings, AI, Model for pictures."
+    elif re.match(r"HTTP (400|404|422)\b", str(last)):
         hint = " The model may not be able to read pictures: pick one that can under Settings, AI, Model for pictures."
     raise RuntimeError(f"The AI did not answer: {ai.explain(last) or last}{hint}")
 

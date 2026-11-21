@@ -333,6 +333,29 @@ def _wait(cond, seconds=60):
     raise AssertionError("timed out waiting")
 
 
+def test_picture_limit_pieces():
+    """A model that takes 3 pictures a request gets 7 pictures in 3 requests, and the clips are merged and cut to n."""
+    from unittest.mock import patch
+    from studio import ai, brain
+    calls = []
+
+    def fake_look(model, prompt, images, schema, timeout=None):
+        calls.append(len(images))
+        if len(images) > 3:
+            raise RuntimeError("HTTP 400 {\"error\":{\"message\":\"Too many images provided. This model supports up to 3 images\"}}")
+        return [{"score": len(calls) * 10 + k} for k in range(2)], 5, 1
+
+    brain.PICTURE_CAP.clear()
+    with patch.object(brain, "config", type("C", (), {"ai_ready": staticmethod(lambda: True)})), \
+            patch.object(ai, "vision_models", return_value=["m"]), patch.object(ai, "look", side_effect=fake_look), \
+            patch.object(ai, "clear_problem", lambda: None), patch.object(brain.usage, "record", lambda *a, **k: None):
+        out, model, tokens = brain.ask_vision("p", [b"x"] * 7, {}, "test")
+    check("picture limit learned", brain.PICTURE_CAP.get("m") == 3)
+    check("pieces of 3 then 3 then 1", calls == [7, 3, 3, 1])
+    check("answers joined", len(out) == 6 and model == "m")
+    brain.PICTURE_CAP.clear()
+
+
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="pc-vision-") as d:
         main(d)
