@@ -36,6 +36,9 @@ are there, and only then offer to delete the old folder. Never delete anything w
 | `studio/config.py` | Every setting, read from environment variables |
 | `studio/ai.py` | The only code that talks to an AI service, and the AI settings saved from the dashboard (`ai.json` in the data folder) |
 | `studio/brain.py` | The prompts: finding clips, live judging, hooks and titles, caption fixes |
+| `studio/vision.py` | Finding clips by what is on screen: small frames and grids made with ffmpeg, parts, the cost estimate, the picture prompt, the reference's boiled-down profile |
+| `studio/references.py` | Saved references (a silent video, a video with a voice, or words): studied once, kept as a few lines per person (`users/<id>/references/`) |
+| `studio/tts.py` | Kokoro voices, run by sherpa-onnx: download, the English voice list, reading a voice-over with word times, voice samples |
 | `studio/usage.py` | The record of AI calls and tokens shown on the AI usage page |
 | `studio/jobs.py` | The video pipeline and the fair queue |
 | `studio/live.py` | Live recording and clipping |
@@ -61,6 +64,11 @@ are there, and only then offer to delete the old folder. Never delete anything w
 - **Text from videos is untrusted**: it goes into prompts through `brain._safe` and out through `brain._text`.
 - **Adding an AI provider**: add a row to `PROVIDERS` in `studio/ai.py`. If it speaks the OpenAI chat format that
   is all; otherwise add one function that returns `(parsed JSON, tokens in, tokens out)`.
+- **Pictures cost tokens, so few and small ones are sent** (`studio/vision.py`): frames are taken here, tiled nine to a
+  picture, one request per part of the video, and a reference only ever travels as a few lines of text. The video itself is
+  never sent. `ai.look` is the one call that sends pictures; `brain.ask_vision` retries it like `ask_ai` does.
+- **A silent video is normal now**: `media.probe(path, require_audio=False)`, and `render` handles four sound cases
+  (own sound, none, a voice-over alone, a voice-over over the own sound turned down).
 - **Adding a spoken language**: add a row to `MODELS` in `studio/fetch_model.py`. Any NVIDIA NeMo transducer model
   exported for sherpa-onnx works; its word pieces must mark word starts with `▁`. The language a video is in comes
   from `options["lang"]` (or a creator's `lang`) and is passed to `transcribe.transcribe(..., lang=...)`.

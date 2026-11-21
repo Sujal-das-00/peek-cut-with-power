@@ -242,7 +242,7 @@ def save_thumb(job_dir: Path, url: str = "", video: Path = None) -> bool:
             out.write_bytes(base64.b64decode(p["thumb"].split(",", 1)[1]))
             return True
         if video:
-            d = probe(video).get("duration") or 0
+            d = probe(video, require_audio=False).get("duration") or 0
             run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{min(3.0, d / 3):.2f}", "-i", str(video),
                  "-frames:v", "1", "-vf", "scale=480:-2", "-q:v", "4", str(out)])
             return out.is_file()
@@ -306,13 +306,16 @@ def find_offset(full: np.ndarray, part: np.ndarray, expected: float, search=20.0
     return (a0 + int(np.argmax(corr))) / 16000
 
 
-def probe(path: Path) -> dict:
+def probe(path: Path, require_audio: bool = True) -> dict:
+    """Size, length and whether there is sound. A video with no sound is refused unless `require_audio` is False
+    (finding clips by what is on screen does not need any)."""
     out = run(["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)])
     data = json.loads(out)
     v = next((s for s in data["streams"] if s["codec_type"] == "video"), None)
     if not v:
         raise RuntimeError("This file has no video track.")
-    if not any(s["codec_type"] == "audio" for s in data["streams"]):
+    has_audio = any(s["codec_type"] == "audio" for s in data["streams"])
+    if require_audio and not has_audio:
         raise RuntimeError("This file has no audio track, so there is nothing to transcribe.")
     w, h = int(v["width"]), int(v["height"])
     if w * h > 3840 * 2160 or w < 16 or h < 16:
@@ -320,7 +323,7 @@ def probe(path: Path) -> dict:
     rot = str((v.get("side_data_list") or [{}])[0].get("rotation", "0"))
     if rot.lstrip("-") in ("90", "270"):
         w, h = h, w
-    return {"width": w, "height": h, "duration": float(data["format"]["duration"])}
+    return {"width": w, "height": h, "duration": float(data["format"]["duration"]), "audio": has_audio}
 
 
 def extract_audio(src: Path, wav: Path):

@@ -101,6 +101,23 @@ PEAKCUT_AI_KEY=your-key-here
   tokens each video took.
 - Speech to text does not use the AI service. It runs on your own machine, so audio never leaves it.
 
+### Finding clips by what is on screen (Vision)
+
+For videos with no talking, or when the pictures matter more than the words. Press **Vision** in the add bar and switch
+it on. PeakCut takes small pictures from your video on this computer and asks your AI to pick the best moments; the video
+itself is never sent.
+
+- **Reference**: a video (silent, or with a voice), some words, or both, that shows how the clips should look: how fast it
+  cuts, what is on screen and, if it has a voice, the style of its voice-over. A reference is studied once and kept as a few
+  lines of text, so it costs almost nothing to reuse.
+- **Chop into parts**: a long video can be cut into parts (empty means about one per 8 minutes). Each part is its own
+  request, and more parts means more detail.
+- **How closely to look**: Saver, Balanced or Detailed (a frame every 8, 5 or 3 seconds). The page shows an estimate of the
+  tokens before anything is sent.
+- **Voice-over**: the AI writes it, in the reference's style, and a voice on this computer reads it over the clip. Download
+  the Kokoro voices once under **Settings → Voices** (about 330 MB), press ▶ to hear each one.
+- **Model for pictures** (Settings → AI, optional): the model asked when pictures are sent. It must be able to read images.
+
 ### Videos in Arabic
 
 PeakCut hears English by default. To clip videos in Arabic, add the Arabic speech model once in

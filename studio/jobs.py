@@ -12,7 +12,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, config, creators, ctx, facecam, fetch_model, games, hashtags, load, media, quality, render, roman, safe, transcribe, usage
+from . import brain, config, creators, ctx, facecam, fetch_model, games, hashtags, load, media, quality, references, render, roman, safe, transcribe, tts, usage, vision
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -110,10 +110,14 @@ on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first f
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "blur", "quality": 720,
             "range_start": None, "range_end": None, "captions": True, "big_text": True, "hook_text": "",
-            "description_text": "", "lang": "en"}   # lang: the language spoken
+            "description_text": "", "lang": "en",   # lang: the language spoken
+            # finding clips by what is on screen (studio/vision.py): detail is how many frames, parts how many pieces
+            # the video is chopped into (0: about one per eight minutes), reference a saved reference's id
+            "vision": False, "parts": 0, "detail": vision.DEFAULT_DETAIL, "reference": "", "ref_prompt": "",
+            "voiceover": False, "voice": tts.DEFAULT_VOICE}
 
 
-LIMITS = {"max_clips": (1, 20), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080)}
+LIMITS = {"max_clips": (1, 20), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080), "parts": (0, vision.MAX_PARTS)}
 
 
 def clean_options(options) -> dict:
@@ -124,6 +128,14 @@ def clean_options(options) -> dict:
             if not isinstance(v, bool):
                 raise ValueError("Captions must be on or off." if k == "captions" else "Big text must be on or off.")
             out[k] = v
+            continue
+        if k in ("vision", "voiceover"):
+            if not isinstance(v, bool):
+                raise ValueError("Finding clips by sight and the voice-over must each be on or off.")
+            out[k] = v
+            continue
+        if k == "ref_prompt":              # the person's own words about the look: one line, kept even when empty
+            out[k] = " ".join(str(v or "").split())[:500]
             continue
         if k in ("hook_text", "description_text"):     # kept even when empty: it clears the creator's own text for this video
             out[k] = creators.clean_hook(v) if k == "hook_text" else creators.clean_description(v)
@@ -139,6 +151,13 @@ def clean_options(options) -> dict:
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
         elif k == "lang":
             v = v if fetch_model.known(v) else DEFAULTS["lang"]
+        elif k == "detail":
+            v = v if v in vision.DETAIL else DEFAULTS["detail"]
+        elif k == "reference":
+            if not (isinstance(v, str) and references.ID.fullmatch(v)):
+                raise ValueError("That reference isn't valid.")
+        elif k == "voice":
+            v = int(v) if tts.valid(v) else DEFAULTS["voice"]
         else:                                    # range_start, range_end: seconds into the video
             v = float(v)
             if not math.isfinite(v) or v < 0:
@@ -154,13 +173,14 @@ def job_dir(jid) -> Path:
 
 
 HIDDEN = ("dir", "user", "source_path", "recover")
+CLIP_HIDDEN = ("src", "fixed_words", "fixed_for", "vo_file", "vo_words")
 
 
 def public(job) -> dict:
     """What the browser may see: no server paths, no owner id."""
     out = {k: v for k, v in job.items() if k not in HIDDEN}
     out["source"] = {k: v for k, v in job["source"].items() if k != "path"}
-    out["clips"] = [{k: v for k, v in c.items() if k not in ("src", "fixed_words", "fixed_for")} for c in job["clips"]]
+    out["clips"] = [{k: v for k, v in c.items() if k not in CLIP_HIDDEN} for c in job["clips"]]
     ai = job.get("ai") or {}
     out["ai"] = {"tokens": ai.get("tokens", 0), "note": ai.get("note", ""), "used": bool(ai.get("model"))}   # never the model, never raw errors
     if job.get("status") == "queued":
@@ -438,7 +458,9 @@ def save_post_text(job, clip, changes: dict):
 
 
 def spoken_in(job, clip) -> str:
-    """What is said during a clip, from the video's transcript."""
+    """What is said during a clip, from the video's transcript (or, for a clip found by sight, its voice-over)."""
+    if clip.get("voiceover"):
+        return str(clip["voiceover"])
     try:
         words = json.loads((Path(job["dir"]) / "words.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -466,8 +488,12 @@ def render_one(job, clip, words):
         if not clip.get("src"):
             clip["end"] = min(clip["end"], job["duration"])
         local = dict(clip, start=clip["start"] - off, end=clip["end"] - off, hook=roman.to_roman(clip.get("hook") or ""))
-        near = _caption_words(job, clip, words, off) if clip.get("captions", True) else []
-        out = render.render_clip(src, d / "clips", clip["id"], local, near, job["width"], job["height"])
+        vo = Path(clip["vo_file"]) if clip.get("vo_file") else None
+        if clip.get("vo_words"):        # a voice-over: its words are already English and already timed, so no AI call
+            near = [dict(w, s=w["s"] + local["start"], e=w["e"] + local["start"]) for w in clip["vo_words"]] if clip.get("captions", True) else []
+        else:
+            near = _caption_words(job, clip, words, off) if clip.get("captions", True) else []
+        out = render.render_clip(src, d / "clips", clip["id"], local, near, job["width"], job["height"], voiceover=vo)
         clip.update(out, status="done", version=clip.get("version", 0) + 1, error=None)
         post = {k: clip[k] for k in ("title", "description", "hashtags", "hook", "start", "end", "score")}
         (d / "clips" / f"{clip['id']}.json").write_text(json.dumps(post, indent=1), encoding="utf-8")
@@ -633,6 +659,8 @@ def _run_job(job):
     d = Path(job["dir"])
     o = job["options"]
     src = job["source"]
+    if o.get("vision"):
+        return _run_vision_job(job)
     # Which game this is: what the creator set, or what the title says. It decides the extra rules the AI
     # reads and the tags every post carries.
     game = job.get("game") or ""
@@ -905,6 +933,152 @@ def _run_job(job):
     creators.log(job["creator"], f"Video finished with {len(clips)} clips in {round(time.time() - t0)}s: {job['title']}")
 
 
+def _voice_over(job, clip, sid):
+    """Read a clip's voice-over aloud into a sound file beside the clip, and keep its word times for the captions."""
+    out = Path(job["dir"]) / "clips" / f"{clip['id']}.vo.wav"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    res = tts.narrate(clip["voiceover"], sid, out, max_seconds=max(1.0, clip["end"] - clip["start"]))
+    clip.update(vo_file=str(out), vo_words=res["words"], vo_seconds=res["seconds"])
+
+
+def _run_vision_job(job):
+    """Finding clips by what is on screen: no transcript. The video is chopped into parts; each part is sampled
+    into a few small frames here, and one request per part asks the AI for the best moments (and, when asked, the
+    words of a voice-over). A voice-over is read by the local Kokoro voice and laid over the clip."""
+    import math
+    from concurrent.futures import ThreadPoolExecutor
+    d = Path(job["dir"])
+    o = job["options"]
+    src = job["source"]
+    t0, notes = time.time(), []
+    usage.set_context(job["creator"], job["title"] or src.get("name"))
+    path = Path(job["source_path"]) if job.get("source_path") else None
+    resuming = bool(job.pop("resume", False)) and bool(path and path.is_file())
+    if resuming:
+        _set(job, status="running", stage="Picking up where it stopped", error=None)
+    else:
+        _set(job, status="running", stage="Getting the video", progress=0.03, error=None, clips=[], ai={}, done_blocks=0)
+    if not resuming:
+        if src["type"] == "url":
+            meta = media.info(src["url"])
+            if meta["kind"] != "video":
+                raise RuntimeError("That link is a channel or playlist, not a single video. Paste the link of one video.")
+            if meta["is_live"]:
+                raise RuntimeError("This link is a live stream, so it would never finish downloading. Open the creator, "
+                                   "put this link under Setup, and press Start recording instead.")
+            if ((o["range_end"] or meta["duration"]) - (o["range_start"] or 0)) > config.MAX_VIDEO_HOURS * 3600:
+                raise RuntimeError(f"That is longer than {config.MAX_VIDEO_HOURS:g} hours. Choose a shorter part of it under Options.")
+            _set(job, title=meta["title"], uploader=meta["uploader"], duration=meta["duration"])
+            if not job.get("thumb") and media.save_thumb(d, url=src["url"]):
+                _set(job, thumb=True)
+            usage.set_context(job["creator"], meta["title"])
+            path = media.download(src["url"], d, int(o["quality"]))
+        else:
+            path = Path(src["path"])
+        info = media.probe(path, require_audio=False)
+        if info["duration"] > config.MAX_VIDEO_HOURS * 3600:
+            raise RuntimeError(f"That video is longer than {config.MAX_VIDEO_HOURS:g} hours, which is the limit.")
+        _set(job, source_path=str(path), width=info["width"], height=info["height"], duration=info["duration"], has_audio=info["audio"])
+        if not job.get("thumb") and media.save_thumb(d, video=path):
+            _set(job, thumb=True)
+    lo = float(o["range_start"] or 0)
+    hi = min(float(job["duration"]), float(o["range_end"] or job["duration"]))
+    if hi - lo < 5:
+        raise RuntimeError("There is less than five seconds of video to look at.")
+    game = job.get("game") or games.detect(job["title"], src.get("name"))[0] or ""
+    prof = None
+    if o.get("reference"):
+        prof = references.profile(o["reference"])
+        if not prof:
+            notes.append("The reference was removed or is not ready, so the clips were found without it.")
+    voice = bool(o.get("voiceover"))
+    sid = int(o.get("voice", tts.DEFAULT_VOICE))
+    parts = vision.split(lo, hi, o.get("parts"))
+    done = min(int(job.get("done_blocks") or 0), len(parts)) if resuming else 0
+    ai_ = job.get("ai") or {}
+    tokens, model = int(ai_.get("tokens", 0)), ai_.get("model")
+    cpus = os.cpu_count() or 4
+    renders = ThreadPoolExecutor(1 if cpus <= 4 else 2 if cpus < 8 else min(6, cpus // 6))
+    futures, began = [], {}
+
+    def make(clip):
+        began[clip["id"]] = time.time()
+        try:
+            if voice and clip.get("voiceover") and not clip.get("vo_file"):
+                _voice_over(job, clip, sid)
+        except Exception as e:  # noqa: BLE001 - say what is wrong; Save and re-make tries again once it is fixed
+            clip.update(status="error", error=f"The voice-over could not be made: {safe.friendly(e, 250)}")
+            save(job)
+            return
+        render_one(job, clip, [])
+
+    for c in job["clips"]:            # clips found before a restart that were not finished
+        if c.get("status") not in ("done", "error"):
+            c["status"] = "queued"
+            futures.append((renders.submit(ctx.bind(make), c), c))
+    ok_parts, last_error = done, ""
+    for bi in range(done, len(parts)):
+        a, b = parts[bi]
+        where = f" (part {bi + 1} of {len(parts)})" if len(parts) > 1 else ""
+        left = int(o["max_clips"]) - len(job["clips"])
+        if left <= 0:
+            break
+        _set(job, stage="Taking frames" + where, progress=max(job["progress"], 0.08 + 0.84 * bi / len(parts)))
+        step = vision.step_for(b - a, o.get("detail"))
+        work = d / "frames"
+        shutil.rmtree(work, ignore_errors=True)
+        try:
+            frames, cuts = vision.sample(path, a, b, step, work)
+            if not frames:
+                raise RuntimeError("No frames could be taken from this part.")
+            _set(job, stage="Asking the AI what to clip" + where)
+            found, m, spent = vision.find_part(frames, cuts, a, b, float(job["duration"]), max(1, math.ceil(left / (len(parts) - bi))),
+                                               int(o["min_len"]), int(o["max_len"]), prof, o.get("ref_prompt", ""), voice, step)
+            tokens, model = tokens + spent, m or model
+            ok_parts += 1
+        except Exception as e:  # noqa: BLE001 - one part failing does not lose the others
+            last_error = safe.friendly(e, 300)
+            notes.append(f"Part {bi + 1} failed: {last_error}")
+            found = []
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+        for c in found:
+            if brain._overlaps(c["start"], c["end"], job["clips"]):
+                continue
+            c.update(id=f"clip{len(job['clips']) + 1:02d}", style=o["style"], layout=o["layout"], captions=o.get("captions", True),
+                     big_text=o.get("big_text", True), status="queued", version=0)
+            if o.get("hook_text"):
+                c["hook"] = o["hook_text"]
+            if o.get("description_text"):
+                c["description"], c["fixed_description"] = o["description_text"], True
+            else:
+                if voice and c.get("voiceover"):
+                    c["description"] = c["voiceover"][:300]
+                hashtags.apply(c, [], job["title"], job["uploader"], game)
+            job["clips"].append(c)
+            futures.append((renders.submit(ctx.bind(make), c), c))
+        job["ai"] = {"model": model, "tokens": tokens, "note": "", "log": notes[-5:]}
+        job["done_blocks"] = bi + 1
+        save(job)
+    if ok_parts == done and done < len(parts) and not job["clips"]:
+        raise RuntimeError(last_error or "The AI did not answer.")
+    if futures:
+        _set(job, stage="Finishing the clips", progress=max(job["progress"], 0.92))
+    _wait_for_clips(job, futures, began, renders._max_workers)
+    renders.shutdown(wait=False)
+    clips = job["clips"]
+    job["ai"] = {"model": model, "tokens": tokens, "log": notes[-5:], "note": ""}
+    _set(job, status="done", stage="Done" if clips else "Done, but nothing clip-worthy was found", progress=1.0, took=round(time.time() - t0))
+    try:
+        from . import notices
+        name = job.get("title") or job["source"].get("name") or "your video"
+        notices.add(job.get("user"), "clips", f"{len(clips)} clip{'s' if len(clips) != 1 else ''} ready" if clips else "Nothing clip-worthy found",
+                    name, f"/app/creators/{job['creator']}" if job.get("creator") else "/app/videos")
+    except Exception:  # noqa: BLE001
+        pass
+    creators.log(job["creator"], f"Video finished with {len(clips)} clips by sight in {round(time.time() - t0)}s: {job['title']}")
+
+
 def _worker(quick_only=False):
     while True:
         kind, a, cid = _q.get(quick_only)
@@ -926,7 +1100,7 @@ def _worker(quick_only=False):
             else:
                 clip = next(c for c in job["clips"] if c["id"] == cid)
                 words = []
-                if clip.get("captions", True):
+                if clip.get("captions", True) and not clip.get("vo_words"):
                     words = json.loads((Path(job["dir"]) / "words.json").read_text(encoding="utf-8"))
                 render_one(job, clip, words)
         except Exception as e:  # noqa: BLE001

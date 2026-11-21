@@ -476,6 +476,31 @@ img.av{object-fit:cover}
 .stor-path{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .speech-list{display:flex;flex-direction:column;gap:10px}
 .speech-row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r)}
+.vis-switch{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.vis-switch input{margin-top:3px;width:18px;height:18px;accent-color:var(--brand);flex:none}
+.vis-switch b{display:block;font-size:14px;color:var(--brand-ink)}
+.vis-switch small{display:block;font-weight:400;color:var(--dim);font-size:12.5px;line-height:1.5;margin-top:2px}
+.vis-off{color:var(--dim);font-size:13px;margin:0}
+.vis-hint{color:var(--dim);font-size:12.5px;line-height:1.5;margin:0 0 10px}
+.refs{display:grid;gap:8px}
+.ref{display:flex;gap:12px;align-items:center;padding:9px 12px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg);cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+.ref:hover{border-color:var(--brand-line)}
+.ref:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.ref input{accent-color:var(--brand);flex:none}
+.ref .rc{width:44px;height:44px;border-radius:8px;background:var(--muted);object-fit:cover;flex:none;display:grid;place-items:center;color:var(--dim)}
+.ref .rc svg{width:20px;height:20px}
+.ref .rt{flex:1;min-width:0}.ref .rt b{display:block;font-size:13.5px;color:var(--brand-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ref .rt span{display:block;font-size:12px;color:var(--dim);line-height:1.4}.ref .rt span.bad{color:var(--bad)}
+.vlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-height:250px;overflow:auto;padding:2px}
+.vrow{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line-2);border-radius:12px;background:var(--bg)}
+.vrow label{flex:1;display:flex;gap:8px;align-items:center;cursor:pointer;min-width:0;font-size:13.5px;color:var(--brand-ink)}
+.vrow label input{accent-color:var(--brand)}
+.vrow:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+.vrow small{display:block;color:var(--dim);font-size:11.5px}
+.vplay{width:32px;height:32px;border-radius:50%;border:1px solid var(--line-2);background:var(--bg);display:grid;place-items:center;cursor:pointer;color:var(--brand-ink);flex:none;padding:0;transition:background-color .15s ease}
+.vplay:hover{background:var(--brand-line)}.vplay svg{width:15px;height:15px}.vplay.busy{opacity:.45;pointer-events:none}
+.vis-est{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line-2);font-size:13px;color:var(--brand-ink)}
+.vis-est svg{width:18px;height:18px;color:var(--brand-deep);flex:none}
 .speech-info{flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:2px}.speech-info .bar{max-width:320px}
 .stor-path code{flex:1 1 260px;min-width:0;overflow-wrap:anywhere;font-size:13px;background:var(--muted);border-radius:8px;padding:10px 12px}
 .stor-bar{height:10px;border-radius:999px;background:var(--muted);overflow:hidden;margin:14px 0 6px}
@@ -1124,7 +1149,8 @@ function startTour() {
 
 /* ============================================================ state */
 const S = {status:{styles:{}, layouts:{}}, jobs:[], creators:[], accounts:[], overview:null, settings:null,
-           view:"overview", ctab:"clips"};
+           view:"overview", ctab:"clips",
+           vis:{on:false, ref:"", parts:"", detail:"balanced", vo:false, voice:3, prompt:""}, refs:[], refsAt:0};
 const D = {jid:null, cid:null, sig:""};
 const creatorId = () => S.view.startsWith("c:") ? S.view.slice(2) : null;
 const creator = () => S.creators.find(c => c.id === creatorId());
@@ -1447,7 +1473,8 @@ function drawAdd(variant) {
     <div class="composer-bar">
       <button type="button" class="chip" data-act="pickfile">${ic("up")}Upload video</button>
       ${c ? "" : picker("o_creator", "File under creator", [{v:"", label:"No creator", icon:"user"}, ...S.creators.map(x => ({v:x.id, label:x.name, img:x.profile?.pic && x.profile.channel === x.channel ? avatarUrl(x) : ""}))], "")}
-      <button type="button" class="chip" data-act="toggleopts" aria-expanded="false">${ic("sliders")}Options</button>
+      <button type="button" class="chip" data-act="toggleopts" data-t=".composer-opts:not(.vis)" aria-expanded="false">${ic("sliders")}Options</button>
+      <button type="button" class="chip ${S.vis.on ? "on" : ""}" id="visChip" data-act="toggleopts" data-t="#visPanel" aria-expanded="false">${ic("eye")}Vision${S.vis.on ? " on" : ""}</button>
       <span class="grow"></span><span class="hint">or drop a video file here</span>
       <button class="btn primary" id="goBtn">${ic("scissors")}Make clips</button>
     </div>
@@ -1472,8 +1499,10 @@ function drawAdd(variant) {
       <div class="ob"><div class="ot">Part of the video</div><div class="range">
         <label>From<input id="o_from" type="number" min="0" placeholder="start" aria-label="From minute">min</label>${ic("arrowr")}
         <label>To<input id="o_to" type="number" min="0" placeholder="end" aria-label="Up to minute">min</label></div></div>
-    </div></div></form>`;
+    </div></div>${visionHtml()}</form>`;
   drawAtt();
+  drawVision();
+  if (Date.now() - S.refsAt > 30000) loadRefs();
 }
 const LAYOUT_SHORT = {blur:"Blurred fill", zoom:"Zoomed in", crop:"Fill screen", left:"Keep left", right:"Keep right", fit:"Black bars", split:"Split screen", gameplay:"Gameplay + facecam"};
 /* The language spoken in the video picks which speech model writes the transcript. Languages other than English
@@ -1550,7 +1579,157 @@ function jobOptions() {
     hook_text:$("#o_hook").value.trim(), description_text:$("#o_desc").value.trim(), lang:$("#o_lang")?.value || "en"};
   if (n("#o_from") !== null) o.range_start = n("#o_from") * 60;
   if (n("#o_to") !== null) o.range_end = n("#o_to") * 60;
+  Object.assign(o, visionOptions());
   return o;
+}
+
+/* ---------- finding clips by what is on screen (Vision)
+   The choices live in S.vis, not in the page, so they survive the add bar being drawn again. */
+const DETAIL = {saver:["Saver", "A frame every 8 s"], balanced:["Balanced", "A frame every 5 s"], detailed:["Detailed", "A frame every 3 s"]};
+function visionOptions() {
+  const V = S.vis; if (!V.on) return {};
+  const o = {vision:true, detail:V.detail};
+  if (String(V.parts).trim() !== "") o.parts = Number(V.parts);
+  if (V.ref && S.refs.some(r => r.id === V.ref)) o.reference = V.ref;
+  if (V.prompt.trim()) o.ref_prompt = V.prompt.trim();
+  if (V.vo) { o.voiceover = true; o.voice = Number(V.voice); }
+  return o;
+}
+const refKind = r => r.status === "analyzing" ? "Studying it…" : r.status === "error" ? "Could not be studied"
+  : r.kind === "voice" ? "Video with a voice" : r.kind === "text" ? "Description only" : "Silent video";
+const refMeta = r => r.status !== "ready" ? (r.status === "error" ? r.error : r.stage || "") :
+  [r.shot ? `a new shot every ${r.shot.toFixed(1)} s` : "", r.pace, r.wps ? `${r.wps.toFixed(1)} words a second` : ""].filter(Boolean).join(" · ");
+function refCards() {
+  const V = S.vis;
+  const none = `<label class="ref"><input type="radio" name="v_ref" value="" ${V.ref ? "" : "checked"}><span class="rc">${ic("scissors")}</span><span class="rt"><b>No reference</b><span>PeakCut picks the moments on its own.</span></span></label>`;
+  return `<div class="refs">${none}${S.refs.map(r => `<label class="ref"><input type="radio" name="v_ref" value="${esc(r.id)}" ${V.ref === r.id ? "checked" : ""} ${r.status === "ready" ? "" : "disabled"}>
+      ${r.cover ? `<img class="rc" src="/api/references/${esc(r.id)}/cover" alt="">` : `<span class="rc">${ic(r.kind === "text" ? "chat" : "film")}</span>`}
+      <span class="rt"><b>${esc(r.name)}</b><span>${esc(refKind(r))}</span><span class="${r.status === "error" ? "bad" : ""}">${esc(refMeta(r))}</span></span>
+      <button type="button" class="btn icon ghost sm" data-act="refdel" data-v="${esc(r.id)}" aria-label="Delete this reference">${ic("trash")}</button></label>`).join("")}</div>
+    <div class="row" style="margin-top:10px"><button type="button" class="btn sm" data-act="refnew">${ic("plus")}Add a reference</button></div>`;
+}
+function voiceRows(selected) {
+  const v = S.status.voices || {voices:[]};
+  return `<div class="vlist">${v.voices.map(x => `<div class="vrow">${selected === null ? `<span style="flex:1;font-size:13.5px;color:var(--brand-ink)">${esc(x.name)}<small>${esc(x.accent)} · ${esc(x.gender)}</small></span>` :
+    `<label><input type="radio" name="v_voice" value="${x.id}" ${Number(selected) === x.id ? "checked" : ""}><span>${esc(x.name)}<small>${esc(x.accent)} · ${esc(x.gender)}</small></span></label>`}
+    <button type="button" class="vplay" data-act="voiceplay" data-v="${x.id}" aria-label="Hear ${esc(x.name)}">${ic("play")}</button></div>`).join("")}</div>`;
+}
+function voiceBlock() {
+  const V = S.vis, vs = S.status.voices || {state:"missing", size_mb:330}, admin = S.status.user?.is_admin;
+  if (!V.vo) return "";
+  if (vs.state === "ready") return `<p class="vis-hint" style="margin-top:10px">Press ▶ to hear a voice. It is read on this computer; nothing is sent anywhere.</p>${voiceRows(V.voice)}`;
+  return `<div class="note" style="margin:10px 0 0">${ic("down")}<span><b>The voices aren't on this computer yet.</b> They are a one-time download of about ${esc(vs.size_mb)} MB (Kokoro, free and open).
+    ${vs.state === "downloading" ? `<span class="sub">Downloading ${esc(vs.percent)}%…</span>` : admin ? `<span class="row" style="margin-top:10px"><button type="button" class="btn sm primary" data-act="voicesget">Download the voices</button></span>` : `Ask your admin to add them in Settings → Voices.`}</span></div>`;
+}
+function visionHtml() {
+  return `<div class="composer-opts vis" id="visPanel" inert><div class="og">
+    <div class="ob wide"><label class="vis-switch"><input type="checkbox" id="v_on" ${S.vis.on ? "checked" : ""}>
+      <span><b>Find the clips by what is on screen</b><small>Good for videos with no talking, or when the pictures matter more than the words. PeakCut takes small pictures from your video on this computer and sends only those to your AI. The video itself is never sent.</small></span></label></div>
+    <div class="ob wide" id="visBody"></div></div></div>`;
+}
+function drawVision() {
+  const box = $("#visBody"); if (!box) return;
+  const V = S.vis;
+  if (!V.on) { box.innerHTML = `<p class="vis-off">Switch it on to choose a reference, the number of parts and a voice-over.</p>`; return; }
+  const ai = S.status.vision?.ai_ready;
+  box.innerHTML = `${ai ? "" : `<div class="note" style="margin:0 0 14px">${ic("warn")}<span><b>No AI set up yet.</b> Finding clips by sight needs an AI service that can read pictures. ${S.status.user?.is_admin ? "Set one up under Settings → AI." : "Ask your admin to set one up."}</span></div>`}
+    <div class="ot">1 · Reference: how should the result look?</div>
+    <p class="vis-hint">A reference shows PeakCut how your finished clips should look: how fast it cuts and what is on screen. If it has a voice, the voice-over is written in the same style. It can be a silent video, a video with a voice, or just a description.</p>${refCards()}
+    <div class="ot" style="margin-top:18px">2 · Chop the video into parts</div>
+    <p class="vis-hint">Each part is sent to the AI on its own, so a long video never becomes one huge request. Leave it empty and PeakCut makes about one part for every 8 minutes.</p>
+    ${stepper("v_parts", "Parts", V.parts, 1, 12, 1, "")}
+    <div class="ot" style="margin-top:18px">3 · How closely to look</div><input type="hidden" id="v_detail" value="${esc(V.detail)}">
+    <div class="seg" role="group" aria-label="How closely to look">${Object.entries(DETAIL).map(([k, [l, sub]]) => `<button type="button" data-seg="v_detail" data-v="${k}" aria-pressed="${k === V.detail}">${l}<small>${sub}</small></button>`).join("")}</div>
+    <div class="ot" style="margin-top:18px">4 · Voice-over</div>
+    <label class="vis-switch"><input type="checkbox" id="v_vo" ${V.vo ? "checked" : ""}><span><b>Write a voice-over and read it aloud</b><small>The AI writes the words for each clip, in the style of your reference, and a voice on this computer reads them over the clip.</small></span></label>${voiceBlock()}
+    <div class="ot" style="margin-top:18px">5 · Anything else? <span style="font-weight:400">(optional)</span></div>
+    <textarea id="v_prompt" rows="3" maxlength="500" placeholder="For example: only the funniest moments, keep the voice-over calm and short." aria-label="Extra instructions">${esc(V.prompt)}</textarea>
+    <div class="vis-est" id="visEst" style="margin-top:14px">${ic("bolt")}<span>Working out the cost…</span></div>`;
+  $("#v_parts").placeholder = "Auto";
+  scheduleEst();
+}
+async function loadRefs() {
+  S.refsAt = Date.now();
+  try { S.refs = (await api("/api/references")).references; } catch { return; }
+  if (S.vis.ref && !S.refs.some(r => r.id === S.vis.ref)) S.vis.ref = "";
+  if (!$("#visBody")?.contains(document.activeElement)) drawVision();
+  clearTimeout(S.refTimer);
+  if (S.refs.some(r => r.status === "analyzing")) S.refTimer = setTimeout(loadRefs, 2000);
+}
+let estTimer = 0;
+function scheduleEst() { clearTimeout(estTimer); estTimer = setTimeout(estimateNow, 250); }
+async function estimateNow() {
+  const el = $("#visEst"); if (!el || !S.vis.on) return;
+  const A = att(), V = S.vis;
+  const secs = [...A.links.filter(l => l.state === "ok" && l.info?.duration && !l.info.is_live).map(l => l.info.duration), ...A.files.filter(f => f.dur).map(f => f.dur)];
+  const base = {parts: String(V.parts).trim() === "" ? 0 : Number(V.parts), detail: V.detail, reference: !!V.ref, ref_prompt: !!V.prompt.trim(), voiceover: V.vo};
+  try {
+    let tokens = 0, calls = 0;
+    for (const s of (secs.length ? secs : [600])) { const r = await send("/api/vision/estimate", {...base, seconds: s}); tokens += r.tokens; calls += r.calls; }
+    const n = Math.round(tokens / 100) * 100;
+    el.innerHTML = `${ic("bolt")}<span>${secs.length ? `About <b>${n.toLocaleString()} tokens</b> in ${calls} AI request${calls === 1 ? "" : "s"} for your video${secs.length > 1 ? "s" : ""}.` : `About <b>${n.toLocaleString()} tokens</b> for every 10 minutes of video. Add a video to see its exact estimate.`} Your own AI account is billed.</span>`;
+  } catch { el.innerHTML = `${ic("bolt")}<span>The estimate isn't available right now.</span>`; }
+}
+function syncVis() {
+  const V = S.vis, p = $("#visPanel"); if (!p) return;
+  const before = JSON.stringify([V.on, V.vo, V.ref]);
+  V.on = $("#v_on").checked;
+  if ($("#v_detail")) V.detail = $("#v_detail").value;
+  if ($("#v_parts")) V.parts = $("#v_parts").value;
+  if ($("#v_prompt")) V.prompt = $("#v_prompt").value;
+  if ($("#v_vo")) V.vo = $("#v_vo").checked;
+  const r = p.querySelector("[name=v_ref]:checked"); if (r) V.ref = r.value;
+  const vo = p.querySelector("[name=v_voice]:checked"); if (vo) V.voice = Number(vo.value);
+  const chip = $("#visChip"); if (chip) chip.innerHTML = `${ic("eye")}Vision${V.on ? " on" : ""}`, chip.classList.toggle("on", V.on);
+  if (before !== JSON.stringify([V.on, V.vo, V.ref])) drawVision(); else scheduleEst();
+}
+document.addEventListener("click", e => { if (e.target.closest("#visPanel") && !e.target.closest("[data-act]")) setTimeout(syncVis, 0); });
+document.addEventListener("input", e => { if (e.target.closest("#visPanel")) syncVis(); });
+document.addEventListener("change", e => { if (e.target.closest("#visPanel")) syncVis(); });
+async function playVoice(id, b) {
+  try { S.audio?.pause(); } catch {}
+  if (S.playing === id) { S.playing = null; $$(".vplay").forEach(x => x.innerHTML = ic("play")); return; }
+  b.classList.add("busy");
+  try {
+    const r = await fetch(`/api/voices/${id}/sample`);
+    if (!r.ok) { let d = "That voice couldn't be played."; try { d = (await r.json()).detail || d; } catch {} throw new Error(d); }
+    const a = S.audio = new Audio(URL.createObjectURL(await r.blob()));
+    S.playing = id; $$(".vplay").forEach(x => x.innerHTML = ic("play")); b.innerHTML = ic("pause");
+    a.onended = () => { S.playing = null; b.innerHTML = ic("play"); };
+    await a.play();
+  } catch (err) { S.playing = null; b.innerHTML = ic("play"); toast(err.message, "bad"); }
+  finally { b.classList.remove("busy"); }
+}
+function openRefDialog() {
+  const d = $("#formdlg");
+  d.innerHTML = `<form method="dialog" class="dlg"><h2>Add a reference</h2>
+    <p class="help">Show PeakCut how your finished clips should look. Use a <b>silent video</b>, a <b>video with a voice</b> (its voice-over style is copied), some <b>words</b>, or any mix of them.</p>
+    <label class="f">Name<input id="rf_name" maxlength="60" autocomplete="off" placeholder="For example: Fast gaming edits"></label>
+    <label class="f" style="margin-top:12px"><span>Reference video <span style="font-weight:400">(optional)</span></span><input id="rf_file" type="file" accept="video/*"><span class="hint">Only its first 3 minutes are studied. The video is deleted afterwards; PeakCut keeps just a few lines about it.</span></label>
+    <label class="f" style="margin-top:12px"><span>Your own words <span style="font-weight:400">(optional)</span></span><textarea id="rf_note" rows="3" maxlength="500" placeholder="For example: quick cuts, big yellow text, a calm voice-over in short sentences"></textarea></label>
+    <div class="bar" id="rf_bar" hidden style="margin-top:12px"><i style="width:0"></i></div>
+    <div class="dlg-foot"><button class="btn" value="no" id="rf_cancel">Cancel</button><button class="btn primary" type="button" data-act="refsave">${ic("plus")}Add reference</button></div></form>`;
+  d.onclose = null; d.returnValue = "no"; d.showModal();
+}
+function saveRef(btn) {
+  const f = $("#rf_file").files[0], note = $("#rf_note").value.trim();
+  if (!f && !note) return toast("Add a reference video, or describe the look in words.", "bad");
+  const fd = new FormData(); fd.append("name", $("#rf_name").value); fd.append("note", note); if (f) fd.append("file", f);
+  const x = new XMLHttpRequest(), bar = $("#rf_bar");
+  btn.disabled = true; if (f) bar.hidden = false;
+  x.open("POST", "/api/references");
+  x.upload.onprogress = e => { if (e.lengthComputable) bar.firstElementChild.style.width = Math.round(e.loaded / e.total * 100) + "%"; };
+  x.onload = async () => {
+    if (x.status === 401) { location.href = "/login"; return; }
+    if (x.status >= 200 && x.status < 300) {
+      const r = JSON.parse(x.responseText);
+      $("#formdlg").close(); S.vis.ref = r.id; toast("Reference added. PeakCut is studying it now.", "ok"); await loadRefs(); return;
+    }
+    let m = "That reference couldn't be added."; try { m = JSON.parse(x.responseText).detail || m; } catch {}
+    btn.disabled = false; bar.hidden = true; toast(typeof m === "string" ? m : "That reference couldn't be added.", "bad");
+  };
+  x.onerror = () => { btn.disabled = false; bar.hidden = true; toast("Upload failed. Check your connection.", "bad"); };
+  x.send(fd);
 }
 /* ---------- attachments: nothing starts until Make clips is pressed.
    Each page keeps its own draft (Home, All videos and every creator), so a link typed for one creator never
@@ -2431,7 +2610,17 @@ const setTabs = () => [
                                           ["security", "Security", "lock", "Password and signing out"]]),
   ["apps", "Connected apps", "plug", "Where your clips get posted"],
   ...(S.status.user?.is_admin ? [["speech", "Speech models", "chat", "The languages PeakCut can hear"],
+                                 ["voices", "Voices", "radio", "Read voice-overs aloud"],
                                  ["storage", "Storage", "folder", "Where videos and clips are kept"]] : [])];
+function pollVoices() {
+  clearTimeout(S.voiceTimer);
+  if (S.status.voices?.state !== "downloading") return;
+  S.voiceTimer = setTimeout(async () => {
+    try { S.status = await api("/api/status"); } catch {}
+    if ($("#sform") && S.stab === "voices") await drawSettings(); else drawVision();
+    pollVoices();
+  }, 1500);
+}
 function aiHints() {
   const k = S.ai, sel = $("#ai_provider"); if (!k || !sel) return;
   const pv = k.providers.find(x => x.id === sel.value) || k.providers[0], same = pv.id === k.provider;
@@ -2459,6 +2648,7 @@ async function drawSettings() {
             <label class="f" id="ai_basewrap">Address<input id="ai_base" value="${esc(k.base_url || "")}" spellcheck="false"><span class="hint">Where the service answers. Only needed for a custom service.</span></label>
             <label class="f">Model<span class="with"><input id="ai_model" list="ai_models" value="${esc(k.models.join(", "))}" spellcheck="false"><button class="btn" type="button" data-act="aimodels">Find models</button></span>
               <datalist id="ai_models"></datalist><span class="hint">A fast, inexpensive model is the right choice. Add a second one after a comma to fall back on.</span></label>
+            <label class="f"><span>Model for pictures <span style="font-weight:400">(optional)</span></span><input id="ai_vmodel" list="ai_models" value="${esc(k.vision_model || "")}" spellcheck="false"><span class="hint">Used when PeakCut looks at pictures from your video (Vision). It must be a model that can read images. Left empty, the first model above is used.</span></label>
           </div>
           <div class="row" style="margin-top:20px"><button class="btn primary" data-act="aisave">Save and test</button>${k.ready ? `<button class="btn" data-act="aitest">Test again</button>` : ""}</div></section>`;
       aiHints();
@@ -2474,6 +2664,16 @@ async function drawSettings() {
       clearTimeout(S.speechTimer);
       if (r.models.some(m => m.state === "downloading")) S.speechTimer = setTimeout(() => { if (S.stab === "speech" && $("#sform")) drawSettings(); }, 1500);
       else if (S.speechTimer) { S.speechTimer = null; S.status = await api("/api/status"); }
+    }
+    if (tab === "voices") {
+      S.status = await api("/api/status"); const v = S.status.voices;
+      body.innerHTML = `<section class="set-sec"><h2>Voices</h2><p class="help">PeakCut can read a voice-over aloud with Kokoro, a small free voice model that runs on this computer. Download it once, then press ▶ to hear each voice and choose one when you add a video with Vision on. Nothing you write is sent to anyone.</p>
+        <div class="speech-list"><div class="speech-row"><div class="speech-info"><b>Kokoro English voices</b><span class="sub">${esc(v.size_mb)} MB · ${esc(v.credit)}</span>
+            ${v.state === "downloading" ? `<div class="bar"><i style="width:${v.percent}%"></i></div>` : ""}${v.error && v.state === "missing" ? `<span class="sub" style="color:var(--bad)">The last download failed. Check the internet connection and try again.</span>` : ""}</div>
+          <div class="row">${v.state === "ready" ? `<span class="pill ok">${ic("check")}Ready</span><button class="btn sm ghost" data-act="voicesdel">${ic("trash")}Remove</button>`
+            : v.state === "downloading" ? `<span class="pill">Downloading ${esc(v.percent)}%</span>` : `<button class="btn sm" data-act="voicesget">${ic("down")}Download</button>`}</div></div></div>
+        ${v.state === "ready" ? `<h3 style="margin:22px 0 10px;font-size:14px;color:var(--brand-ink)">The ${v.voices.length} voices</h3>${voiceRows(null)}` : ""}</section>`;
+      pollVoices();
     }
     if (tab === "profile") {
       const joined = me.created_at ? new Date(me.created_at * 1000).toLocaleDateString([], {day: "numeric", month: "long", year: "numeric"}) : "";
@@ -2595,7 +2795,7 @@ function drawClipDlg(full) {
     dlg.innerHTML = `<div class="editor"><div class="stage" id="stage">${stage}</div>
       <div class="panel">
         <div class="job-head" style="margin:0"><div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
-          <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
+          <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p>${c.voiceover ? `<p class="sub" style="margin-top:8px"><b>Voice-over:</b> ${esc(c.voiceover)}</p>` : ""}</div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
         <h3>On the video</h3>
         <label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
         <label class="sw"><input type="checkbox" data-f="big_text" ${c.big_text === false ? "" : "checked"}>Show the big text</label>
@@ -2745,7 +2945,7 @@ document.addEventListener("click", async e => {
     if (a === "aisave" || a === "aitest") {
       b.disabled = true;
       try {
-        if (a === "aisave") await send("/api/ai", {provider: $("#ai_provider").value, models: $("#ai_model").value, base_url: $("#ai_base").value, key: $("#ai_key").value}, "PUT");
+        if (a === "aisave") await send("/api/ai", {provider: $("#ai_provider").value, models: $("#ai_model").value, base_url: $("#ai_base").value, key: $("#ai_key").value, vision_model: $("#ai_vmodel").value}, "PUT");
         let ok = null, why = "";
         try { ok = await send("/api/ai/test"); } catch (err) { why = err.message; }
         S.status = await api("/api/status"); drawShell(); await drawSettings();
@@ -2768,10 +2968,24 @@ document.addEventListener("click", async e => {
       try { await makeClips(); } finally { A.langOk = null; }
       return;
     }
+    if (a === "refnew") return openRefDialog();
+    if (a === "refsave") return saveRef(b);
+    if (a === "refdel") {
+      if (!await ask("Delete this reference?", "Videos already made stay as they are.", "Delete", true)) return;
+      await api("/api/references/" + encodeURIComponent(d.v), {method: "DELETE"}); if (S.vis.ref === d.v) S.vis.ref = ""; return loadRefs();
+    }
+    if (a === "voiceplay") return playVoice(d.v, b);
+    if (a === "voicesget" || a === "voicesdel") {
+      if (a === "voicesdel" && !await ask("Remove the voices?", "Voice-overs can't be made until they are downloaded again. Clips already made stay.", "Remove", true)) return;
+      b.disabled = true;
+      try { await send("/api/voices" + (a === "voicesget" ? "/download" : ""), {}, a === "voicesget" ? "POST" : "DELETE"); }
+      finally { S.status = await api("/api/status"); if ($("#sform")) await drawSettings(); else drawVision(); pollVoices(); }
+      return;
+    }
     if (a === "langno") { att().look = null; return $("#langnote")?.remove(); }   // asked again next time
     if (a === "menu") return $("#app").classList.toggle("open");
     if (a === "collapse") { const m = $("#app").classList.toggle("mini"); try { localStorage.setItem("mini", m ? "1" : ""); } catch {} return; }
-    if (a === "toggleopts") { const p = $(".composer-opts"), open = !p.classList.contains("open"); p.classList.toggle("open", open); p.inert = !open; b.classList.toggle("on", open); b.setAttribute("aria-expanded", String(open)); return; }
+    if (a === "toggleopts") { const p = $(b.dataset.t || ".composer-opts"), open = !p.classList.contains("open"); p.classList.toggle("open", open); p.inert = !open; b.classList.toggle("on", open); b.setAttribute("aria-expanded", String(open)); return; }
     if (a === "focusurl") return $("#url")?.focus();
     if (a === "step") {
       const t = d.to;

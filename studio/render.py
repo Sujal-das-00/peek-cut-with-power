@@ -293,8 +293,34 @@ def _timeout(seconds):
     return max(RENDER_SECONDS, seconds * (40 if WEAK_CPU else 15))
 
 
-def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int) -> dict:
-    """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names."""
+def has_audio(src: Path) -> bool:
+    """Does this file have any sound? A silent video is a normal thing to clip (finding clips by what is on screen)."""
+    try:
+        out = run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", str(src)])
+    except RuntimeError:
+        return True        # cannot tell: behave as before
+    return bool(out.strip())
+
+
+LOUD = "loudnorm=I=-14:TP=-1.5:LRA=11"
+DUCK = 0.25          # how loud the video's own sound is left under a voice-over
+
+
+def _sound(has_sound: bool, voice: bool) -> tuple:
+    """The sound of a clip: (filter text to add after the picture, ffmpeg arguments for it). Four cases:
+    the video's own sound; no sound at all; a voice-over alone; a voice-over over the video's own sound, turned down."""
+    if voice and has_sound:
+        return (f";[0:a:0]volume={DUCK}[o];[1:a:0][o]amix=inputs=2:duration=longest:normalize=0,{LOUD}[a]", ["-map", "[a]"])
+    if voice:
+        return (f";[1:a:0]{LOUD},apad[a]", ["-map", "[a]"])
+    if has_sound:
+        return ("", ["-map", "0:a:0", "-af", LOUD])
+    return ("", ["-an"])
+
+
+def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, src_w: int, src_h: int, voiceover: Path | None = None) -> dict:
+    """Writes <name>.mp4, <name>.jpg and <name>.ass into out_dir. Returns file names.
+    `voiceover` is a sound file (made by tts.py) read over the clip, which starts at second 0 of the clip."""
     out_dir.mkdir(parents=True, exist_ok=True)
     start, end = clip["start"], clip["end"]
     layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"))
@@ -313,21 +339,26 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     try:
         # The title and description are also written into the file itself, for any place that reads them from it.
         meta = {"title": clip.get("title") or "", "description": clip.get("description") or "", "comment": clip.get("description") or ""}
-        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face, meta=meta)
+        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face, meta=meta, voiceover=voiceover)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None) -> dict:
+def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None, meta=None, voiceover=None) -> dict:
     global _qsv_ok
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
         shutil.copyfile(f, work / "f" / f.name)
-    fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[v]"
-    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src),
-            "-filter_complex", fc, "-map", "[v]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-            "-c:a", "aac", "-b:a", "160k", "-ar", "48000"]
+    voice = bool(voiceover) and Path(voiceover).is_file()
+    sound_fc, sound_args = _sound(has_audio(src), voice)
+    fc = _filter(layout, fg_h, face) + f"[v0]ass={name}.ass:fontsdir=f[v]" + sound_fc
+    base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src)]
+    if voice:
+        base += ["-i", str(voiceover)]
+    base += ["-filter_complex", fc, "-map", "[v]", *sound_args, "-t", f"{end - start:.2f}"]
+    if "-an" not in sound_args:
+        base += ["-c:a", "aac", "-b:a", "160k", "-ar", "48000"]
     for k, v in (meta or {}).items():
         if v:
             base += ["-metadata", f"{k}={v}"]

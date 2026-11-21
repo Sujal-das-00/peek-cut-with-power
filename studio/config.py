@@ -208,6 +208,7 @@ ALLOWED_SITES = tuple(s.strip().lower() for s in env(
 # These are the starting values. Whatever is saved from the dashboard (Settings, AI) is used instead.
 AI_PROVIDER = env("PEAKCUT_AI_PROVIDER", "gemini").strip().lower()            # gemini, openai, xai, groq, openrouter, anthropic, ollama, custom
 AI_MODELS = [m.strip() for m in env("PEAKCUT_AI_MODELS", "").split(",") if m.strip()]   # tried in this order
+AI_VISION_MODEL = env("PEAKCUT_AI_VISION_MODEL", "").strip()              # the model asked when pictures are sent (empty: the first model)
 AI_BASE_URL = env("PEAKCUT_AI_BASE_URL", "").rstrip("/")                      # only for "custom", or to override a provider's address
 
 

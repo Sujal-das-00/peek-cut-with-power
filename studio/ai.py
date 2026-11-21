@@ -67,7 +67,8 @@ def current() -> dict:
     return {"provider": ALIASES.get(p, p),
             "models": list(d["models"]) if d.get("provider") else list(config.AI_MODELS),
             "base_url": (str(d.get("base_url") or "") if d.get("provider") else config.AI_BASE_URL).rstrip("/"),
-            "key": str(d["key"]) if d.get("provider") and "key" in d else config.ai_key()}
+            "key": str(d["key"]) if d.get("provider") and "key" in d else config.ai_key(),
+            "vision_model": (str(d.get("vision_model") or "") if d.get("provider") else config.AI_VISION_MODEL)}
 
 
 def provider() -> str:
@@ -80,6 +81,13 @@ def models() -> list:
 
 def key() -> str:
     return current()["key"]
+
+
+def vision_models() -> list:
+    """The models to ask when pictures are involved: the one chosen for pictures first, then the usual ones."""
+    c = current()
+    first = [c["vision_model"]] if c["vision_model"] else []
+    return first + [m for m in c["models"] if m not in first]
 
 
 def label() -> str:
@@ -100,16 +108,17 @@ def public() -> dict:
     """What the settings page may see. The key itself never leaves the server: only whether there is one, and
     its last four characters so the owner can tell which key it is."""
     c = current()
-    return {"provider": c["provider"], "models": c["models"], "base_url": c["base_url"], "has_key": bool(c["key"]),
+    return {"provider": c["provider"], "models": c["models"], "vision_model": c["vision_model"], "base_url": c["base_url"], "has_key": bool(c["key"]),
             "key_hint": c["key"][-4:] if len(c["key"]) >= 12 else "", "ready": ready(), "label": label(),
             "saved_here": bool(_from_dashboard().get("provider")),
             "providers": [{"id": k, "label": v[0], "address": v[1], "needs_key": k not in NO_KEY, "key_url": v[3], "example": v[4]}
                           for k, v in PROVIDERS.items()]}
 
 
-def save(provider_id: str, model_ids, address: str = "", new_key=None) -> dict:
+def save(provider_id: str, model_ids, address: str = "", new_key=None, vision_model=None) -> dict:
     """Save the choice made in the dashboard. `new_key` None keeps the key that is already there (the page never
-    has it to send back); an empty string removes it."""
+    has it to send back); an empty string removes it. `vision_model` None keeps the model chosen for pictures;
+    an empty string clears it (pictures then go to the first model)."""
     p = ALIASES.get(str(provider_id or "").strip().lower(), str(provider_id or "").strip().lower())
     if p not in PROVIDERS:
         raise ValueError("Choose one of the AI services in the list.")
@@ -126,13 +135,19 @@ def save(provider_id: str, model_ids, address: str = "", new_key=None) -> dict:
     if p == "custom" and not address:
         raise ValueError("A custom service needs its address, for example http://127.0.0.1:1234/v1")
     old = current()
+    if vision_model is None:
+        vm = old["vision_model"] if old["provider"] == p else ""
+    else:
+        vm = str(vision_model).strip()[:120]
+        if vm and not re.fullmatch(r"[\w.\-:/@]+", vm):
+            raise ValueError("A model id has letters, digits and . - : / only.")
     k = old["key"] if new_key is None and old["provider"] == p else str(new_key or "").strip()[:400]
     if not k and p not in NO_KEY:
         raise ValueError("Paste the key for this service.")
     with _lock:
         f = _file()
         tmp = f.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"provider": p, "models": ms, "base_url": address, "key": k}), encoding="utf-8")
+        tmp.write_text(json.dumps({"provider": p, "models": ms, "base_url": address, "key": k, "vision_model": vm}), encoding="utf-8")
         try:
             os.chmod(tmp, 0o600)        # the key is only for whoever runs the server
         except OSError:
@@ -380,6 +395,68 @@ def see(prompt: str, image: bytes, timeout: float | None = None) -> tuple[str, i
     text = (data["choices"][0]["message"].get("content") or "")
     u = data.get("usage") or {}
     return text, int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
+
+
+def look(model: str, prompt: str, images: list, schema: dict, timeout: float | None = None):
+    """Ask one model about several pictures at once: (the parsed JSON answer, tokens in, tokens out).
+
+    Sending all the pictures of one part of a video in a single request is what keeps the cost down: the
+    instructions are paid for once, not once per picture. The pictures are JPEGs, passed as base64. A model that
+    cannot look at pictures answers with an error (usually HTTP 400), which the caller reports in plain words."""
+    how = PROVIDERS[provider()][2]
+    return {"gemini": _look_gemini, "openai": _look_openai, "anthropic": _look_anthropic}[how](model, prompt, images, schema, timeout)
+
+
+def _look_gemini(model, prompt, images, schema, timeout=None):
+    url = f"{base_url()}/{_gem(model)}:generateContent"
+    headers = {"x-goog-api-key": key()}
+    pics = [{"inline_data": {"mimeType": "image/jpeg", "data": base64.b64encode(i).decode()}} for i in images]
+    body = {"contents": [{"role": "user", "parts": pics + [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "responseSchema": schema}}
+    r = httpx.post(url, json=body, headers=headers, timeout=timeout or 240)
+    plain = False
+    if r.status_code in (400, 422) and "api key" not in r.text.lower() and "api_key" not in r.text.lower():
+        body = {"contents": [{"role": "user", "parts": pics + [{"text": _wrapped(prompt, schema)}]}]}
+        r = httpx.post(url, json=body, headers=headers, timeout=timeout or 240)
+        plain = True
+    if r.status_code != 200:
+        _fail(r, model)
+    data = r.json()
+    text = "".join(p.get("text", "") for p in data["candidates"][0]["content"]["parts"])
+    u = data.get("usageMetadata", {})
+    sent = int(u.get("promptTokenCount") or 0)
+    return (_parse(text) if plain else json.loads(text)), sent, max(0, int(u.get("totalTokenCount") or 0) - sent)
+
+
+def _look_openai(model, prompt, images, schema, timeout=None):
+    headers = {"Authorization": f"Bearer {key()}"} if key() else {}
+    # "low" detail is a flat, small charge per picture on services that have the setting; the rest ignore it.
+    pics = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + base64.b64encode(i).decode(), "detail": "low"}} for i in images]
+    body = {"model": model, "stream": False, "messages": [{"role": "user", "content": [{"type": "text", "text": _wrapped(prompt, schema)}] + pics}]}
+    extras = [{"temperature": 0.4, "response_format": {"type": "json_object"}}, {"response_format": {"type": "json_object"}}, {}]
+    r = None
+    for extra in extras:
+        r = httpx.post(f"{base_url()}/chat/completions", json={**body, **extra}, headers=headers, timeout=timeout or 240)
+        if r.status_code not in (400, 422):
+            break
+    if r.status_code != 200:
+        _fail(r, model)
+    data = _openai_body(r)
+    u = data.get("usage") or {}
+    return _parse(data["choices"][0]["message"].get("content")), int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
+
+
+def _look_anthropic(model, prompt, images, schema, timeout=None):
+    pics = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": base64.b64encode(i).decode()}} for i in images]
+    body = {"model": model, "max_tokens": 2048, "messages": [{"role": "user", "content": pics + [{"type": "text", "text": _wrapped(prompt, schema)}]}]}
+    r = httpx.post(f"{base_url()}/messages", json=body, timeout=timeout or 240,
+                   headers={"x-api-key": key(), "anthropic-version": "2023-06-01"})
+    if r.status_code != 200:
+        _fail(r, model)
+    data = r.json()
+    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    u = data.get("usage") or {}
+    return _parse(text), int(u.get("input_tokens") or 0), int(u.get("output_tokens") or 0)
 
 
 def _gem(model: str) -> str:

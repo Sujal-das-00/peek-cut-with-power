@@ -239,6 +239,32 @@ def ask_ai(prompt, schema=None, purpose="AI call", timeout=None):
     raise RuntimeError(f"The AI did not answer: {ai.explain(last) or last}")
 
 
+def ask_vision(prompt, images, schema, purpose="Vision call", timeout=None):
+    """Like ask_ai, but with pictures. The model chosen for pictures is tried first, then the others.
+    Returns (the answer, the model that gave it, tokens used)."""
+    if not config.ai_ready():
+        raise RuntimeError("The AI is not set up on this server.")
+    last = None
+    for model in ai.vision_models():
+        for attempt in range(TRIES):
+            try:
+                out, sent, wrote = ai.look(model, prompt, images, schema, timeout)
+                usage.record(sent, wrote, purpose)
+                ai.clear_problem()
+                return out, model, sent + wrote
+            except Exception as e:  # noqa: BLE001
+                last = e
+                wait = retry_wait(e, attempt, timeout)
+                if wait is None:
+                    break
+                time.sleep(wait)
+    ai.note_problem(last)
+    hint = ""
+    if re.match(r"HTTP (400|404|422)\b", str(last)):
+        hint = " The model may not be able to read pictures: pick one that can under Settings, AI, Model for pictures."
+    raise RuntimeError(f"The AI did not answer: {ai.explain(last) or last}{hint}")
+
+
 def sentence_ends(words) -> list:
     """The moments a sentence finishes. In our own transcript that is a word ending in . ? or !; YouTube's
     transcript has no punctuation, so there it is a pause in the talking."""

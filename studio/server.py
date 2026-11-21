@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from . import admin as admins
 from . import account, load
 from . import (accounts, ai, alerts, auth, brain, config, creators, ctx, db, jobs, live, media, posting,
-               profiles, render, safe, transcribe, usage)
+               profiles, references, render, safe, transcribe, tts, usage, vision)
 
 from . import tools as _tools  # noqa: E402
 
@@ -104,7 +104,7 @@ class Gate:
             # headers claim, so nobody can fill the server's memory by posting junk (signed in or not).
             piece = method == "PUT" and path.startswith("/api/upload/")
             cap = ((min(config.MAX_UPLOAD_MB, config.UPLOAD_PART_MB) if piece else config.MAX_UPLOAD_MB) + 8) * 1024 * 1024 \
-                if path == "/api/upload" or piece else 256 * 1024
+                if path == "/api/upload" or piece else (references.MAX_MB + 8) * 1024 * 1024 if path == "/api/references" and method == "POST" else 256 * 1024
             try:
                 if int(req.headers.get("content-length") or 0) > cap:
                     return await deny(413, f"That file is too big. The limit is {config.MAX_UPLOAD_MB} MB." if path == "/api/upload" else "That request is too large.")
@@ -222,7 +222,7 @@ class Compress:
 
     async def __call__(self, scope, receive, send):
         path = scope.get("path", "") if scope["type"] == "http" else ""
-        media = path.startswith(("/media/", "/api/upload")) or path.endswith((".mp4", ".jpg", ".png", ".webp", ".ico"))
+        media = path.startswith(("/media/", "/api/upload", "/api/voices/")) or path.endswith((".mp4", ".jpg", ".png", ".webp", ".ico"))
         await (self.plain if scope["type"] != "http" or media else self.gzip)(scope, receive, send)
 
 
@@ -611,7 +611,9 @@ def status(request: Request):
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "disk_full": load.disk_full(), "no_ffmpeg": bool(_tools.missing()), "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
             "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_upload_mb": config.MAX_UPLOAD_MB, "upload_part_mb": config.UPLOAD_PART_MB, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
-            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS, "speech": _speech_brief()}
+            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS, "speech": _speech_brief(),
+            "vision": {"ai_ready": ai.ready(), "detail": list(vision.DETAIL), "max_parts": vision.MAX_PARTS, "reference_mb": references.MAX_MB},
+            "voices": tts.brief()}
 
 
 def _speech_brief() -> dict:
@@ -634,6 +636,27 @@ def _job_slots():
         raise HTTPException(503, tools.HELP)
     if jobs.busy_count() >= config.MAX_ACTIVE_JOBS_PER_USER:
         raise HTTPException(429, f"You already have {config.MAX_ACTIVE_JOBS_PER_USER} videos in progress. Wait for one to finish.")
+
+
+def _vision_check(opts):
+    """Finding clips by sight is refused up front, in plain words, when something it needs is missing: far better
+    than a video that starts and then fails after the download."""
+    if not isinstance(opts, dict) or opts.get("vision") is not True:
+        return
+    if not ai.ready():
+        raise HTTPException(400, "Finding clips by what is on screen needs an AI service that can read pictures. "
+                                 "Set one up under Settings, AI (an admin can do this).")
+    if opts.get("voiceover") is True and not tts.ready():
+        raise HTTPException(400, "A voice-over needs the Kokoro voices, which are not on this computer yet. "
+                                 "Download them under Settings, Voices (an admin can do this), or switch the voice-over off.")
+    ref = opts.get("reference")
+    if ref:
+        got = references.get(ref) if isinstance(ref, str) else None
+        if not got:
+            raise HTTPException(404, "That reference no longer exists. Choose another, or none.")
+        if got["status"] != "ready":
+            raise HTTPException(409, "That reference is still being studied. Wait a moment, or choose another." if got["status"] == "analyzing"
+                                else "That reference could not be studied. Open it in the list to see why, or add it again.")
 
 
 _create_lock = threading.Lock()      # "do I have a free slot?" and "take it" happen together, so bursts cannot slip past the limit
@@ -761,6 +784,7 @@ def create_from_link(body: dict = Body(...)):
     creator = str(body.get("creator") or "") or None
     if creator and not creators.get(creator):
         raise HTTPException(404, "No such creator")
+    _vision_check(body.get("options"))
     try:
         with _create_lock:
             _job_slots()
@@ -791,6 +815,7 @@ def create_from_file(file: UploadFile = File(...), options: str = Form("{}"), cr
         opts = opts if isinstance(opts, dict) else {}
     except ValueError:
         opts = {}
+    _vision_check(opts)
     updir = config.TMP_DIR / "uploads"
     updir.mkdir(exist_ok=True)
     tmp = updir / f"{os.urandom(8).hex()}{ext}"
@@ -898,6 +923,7 @@ def upload_start(body: dict = Body(...)):
     if creator and not creators.get(creator):
         raise HTTPException(404, "No such creator")
     opts = body.get("options") if isinstance(body.get("options"), dict) else {}
+    _vision_check(opts)
     try:
         jobs.clean_options(opts)                 # refused now rather than after the whole file has been sent
     except (ValueError, TypeError):
@@ -1371,7 +1397,8 @@ def ai_put(request: Request, body: dict = Body(...)):
     k = body.get("key")
     try:
         out = ai.save(body.get("provider"), body.get("models"), body.get("base_url") or "",
-                      None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k))
+                      None if k is None or (isinstance(k, str) and not k.strip() and not body.get("remove_key")) else str(k),
+                      vision_model=body.get("vision_model"))
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
     usage.forget_all()
@@ -1444,6 +1471,123 @@ def speech_remove(request: Request, lang: str):
         raise HTTPException(409, str(e))
     ctx.bump()
     return speech_list(request)
+
+
+# ================================================================ references, the picture model's cost, and voices
+@app.get("/api/references")
+def references_list():
+    return {"references": references.list_all()}
+
+
+@app.post("/api/references")
+def references_add(file: UploadFile = File(None), name: str = Form(""), note: str = Form("")):
+    """A reference: a video (silent or with a voice), some words, or both. It is studied once, behind the scenes."""
+    _need_verified()
+    _quota()
+    _throttle("newref:" + ctx.uid(), 20, 600)
+    tmp = None
+    try:
+        if file is not None and file.filename:
+            ext = Path(re.sub(r"[^\w.\- ]", "_", file.filename)).suffix.lower()
+            if ext not in VIDEO_TYPES:
+                raise HTTPException(400, "Upload a video file (mp4, mov, mkv or webm), or leave it out and describe the look in words.")
+            updir = config.TMP_DIR / "uploads"
+            updir.mkdir(exist_ok=True)
+            tmp = updir / f"ref-{os.urandom(8).hex()}{ext}"
+            size = 0
+            with tmp.open("wb") as f:
+                while chunk := file.file.read(4 * 1024 * 1024):
+                    size += len(chunk)
+                    if size > references.MAX_MB * 1024 * 1024:
+                        raise HTTPException(413, f"That reference is too big. The limit is {references.MAX_MB} MB; the first three minutes are all that is used, so a shorter file is fine.")
+                    f.write(chunk)
+            try:
+                media.probe(tmp, require_audio=False)
+            except Exception:
+                raise HTTPException(422, "Couldn't read that video. Try another file.")
+        try:
+            ref = references.create(name, note, tmp)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        tmp = None                             # moved into the reference's own folder
+        return references.public(ref)
+    finally:
+        if tmp:
+            tmp.unlink(missing_ok=True)
+
+
+@app.delete("/api/references/{rid}")
+def references_delete(rid: str):
+    if not references.delete(rid):
+        raise HTTPException(404, "No such reference")
+    return {"ok": True}
+
+
+@app.get("/api/references/{rid}/cover")
+def references_cover(rid: str):
+    f = references.cover_path(rid)
+    if not f:
+        raise HTTPException(404)
+    return FileResponse(f, headers={"Cache-Control": "private, max-age=300"})
+
+
+@app.post("/api/vision/estimate")
+def vision_estimate(body: dict = Body(...)):
+    """About how many AI tokens finding clips by sight will use, before anything is sent. Pure arithmetic."""
+    try:
+        seconds = float(body.get("seconds") or 0)
+        parts = int(body.get("parts") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Those numbers aren't valid.")
+    detail = body.get("detail") if body.get("detail") in vision.DETAIL else vision.DEFAULT_DETAIL
+    how = ai.PROVIDERS.get(ai.provider(), ("", "", "gemini"))[2]
+    extra = 0
+    if body.get("reference") or body.get("ref_prompt"):
+        extra += 200
+    if body.get("voiceover"):
+        extra += 150
+    if not (1 <= seconds <= 86400):
+        raise HTTPException(400, "Say how long the video is, in seconds.")
+    return vision.estimate(seconds, parts, detail, how, extra)
+
+
+@app.get("/api/voices")
+def voices_list():
+    return tts.brief()
+
+
+@app.post("/api/voices/download")
+def voices_download(request: Request):
+    _admin(request)
+    tts.start()
+    ctx.bump()
+    return tts.brief()
+
+
+@app.delete("/api/voices")
+def voices_remove(request: Request):
+    _admin(request)
+    try:
+        tts.remove()
+    except RuntimeError as e:
+        raise HTTPException(409, str(e))
+    ctx.bump()
+    return tts.brief()
+
+
+@app.get("/api/voices/{sid}/sample")
+def voice_sample(sid: int):
+    """A few seconds of one voice, for the Play buttons. Made on this computer the first time, then kept."""
+    if not tts.valid(sid):
+        raise HTTPException(404, "No such voice")
+    if not tts.ready():
+        raise HTTPException(409, "The voices aren't downloaded yet.")
+    _throttle("voice:" + ctx.uid(), 60, 600, "That's a lot of voice samples. Wait a few minutes.")
+    try:
+        f = tts.preview(sid)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, "The voice could not be played: " + safe.friendly(e, 200))
+    return FileResponse(f, media_type="audio/wav", headers={"Cache-Control": "private, max-age=3600"})
 
 
 # ================================================================ posting, accounts, settings
