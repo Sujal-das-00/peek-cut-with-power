@@ -227,6 +227,16 @@ def explain(e) -> str:
     if (status == "404" and "model" in low) or (not status and ("404" in text or "not found" in low or "does not exist" in low or "unknown model" in low or "not_found" in low)) \
             or (status and "is not found for api version" in low):
         return f"{label()} doesn't know the model \"{name}\". Open Settings, AI, press Find models and pick one from the list."
+    said = re.search(r'"message"\s*:\s*"((?:[^"\\]|\\.)*)', text)
+    said = (said.group(1).replace('\\"', '"') if said else "")[:240]
+    if status == "413" or "request too large" in low or "reduce your message size" in low:
+        return (f"{label()} says one request is bigger than the model accepts at a time" + (f" (\"{said}\")" if said else "") +
+                ". Use more parts or a lower detail so each request is smaller, or pick a model with a bigger allowance.")
+    if ("429" in text or "rate limit" in low) and re.search(r"per ?minute|\btpm\b|\brpm\b", low) and not re.search(r"per ?day|\btpd\b|\brpd\b", low):
+        return (f"{label()} is limiting how fast this model can be used (per minute, not for the whole day)" +
+                (f": \"{said}\"" if said else "") + ". Wait a minute and try again. More parts or a lower detail make each request smaller.")
+    if ("429" in text or "rate limit" in low) and re.search(r"per ?day|\btpd\b|\brpd\b", low):
+        return f"{label()} says today's allowance for this model is used up" + (f" (\"{said}\")" if said else "") + ". It resets within a day; or pick another model."
     if "429" in text or "quota" in low or "rate limit" in low or "exhausted" in low:
         return f"{label()} says the key has hit its limit or has no credit left. Check the account with {label()}, or try again later."
     if "connect" in low or "timed out" in low or "timeout" in low or "getaddrinfo" in low or "refused" in low or "nodename" in low or "servname" in low or "nameresolutionerror" in low or "name resolution" in low:
